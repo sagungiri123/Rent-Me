@@ -17,6 +17,11 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       match: [/^\S+@\S+\.\S+$/, "Please provide a valid email"],
     },
+    phone: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     password: {
       type: String,
       minlength: [6, "Password must be at least 6 characters"],
@@ -45,7 +50,7 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
     collegeId: {
-      type: String, // URL to uploaded college ID image
+      type: String,
     },
     savedListings: [
       {
@@ -66,7 +71,6 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Hash password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   const salt = await bcrypt.genSalt(12);
@@ -74,21 +78,18 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-// Compare password method
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Generate JWT token
 userSchema.methods.generateToken = function () {
   return jwt.sign(
     { id: this._id, role: this.role },
-    process.env.JWT_SECRET,
+    process.env.JWT_SECRET || "rentme-kathmandu-valley-secret-key",
     { expiresIn: process.env.JWT_EXPIRE || "7d" }
   );
 };
 
-// Remove sensitive fields from JSON output
 userSchema.methods.toJSON = function () {
   const user = this.toObject();
   delete user.password;

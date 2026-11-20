@@ -1,9 +1,8 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { isDbConnected } = require("../config/db");
+const memory = require("../config/memoryStore");
 
-/**
- * Protect routes — verifies JWT token and attaches user to request
- */
 const protect = async (req, res, next) => {
   let token;
 
@@ -22,8 +21,14 @@ const protect = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id);
+    const decoded = jwt.verify(token, memory.JWT_SECRET());
+
+    let user;
+    if (isDbConnected()) {
+      user = await User.findById(decoded.id);
+    } else {
+      user = memory.users.find((u) => u._id === decoded.id);
+    }
 
     if (!user) {
       return res.status(401).json({

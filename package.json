@@ -4,14 +4,35 @@
   "description": "Student housing platform for Kathmandu Valley",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
-    "dev:server": "cd server && npm run dev",
-    "dev:client": "cd client && npm run dev",
-    "seed:server": "cd server && npm run seed",
-    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
-    "build": "cd client && npm run build"
+    "dev": "node server/server.js",
+    "build": "vite build",
+    "start": "NODE_ENV=production node server/server.js",
+    "lint": "tsc --noEmit",
+    "seed:server": "node server/utils/seed.js"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "express-validator": "^7.3.2",
+    "google-auth-library": "^11.3.4",
+    "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^1.77.0",
+    "mongoose": "^9.12.2",
+    "multer": "^2.5.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
   }
 }
