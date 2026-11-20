@@ -4,6 +4,9 @@ let dbConnected = false;
 
 const connectDB = async () => {
   mongoose.set("bufferCommands", false);
+  mongoose.set("debug", false);
+  mongoose.set("sanitizeFilter", true);
+  mongoose.set("strictQuery", true);
 
   if (!process.env.MONGODB_URI) {
     console.warn("MONGODB_URI not configured — running RentMe with live in-memory store.");
@@ -18,9 +21,9 @@ const connectDB = async () => {
     dbConnected = true;
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     return true;
-  } catch (error) {
+  } catch {
     dbConnected = false;
-    console.warn(`MongoDB unavailable (${error.message}) — running RentMe with live in-memory store.`);
+    console.warn("MongoDB unavailable — running RentMe with live in-memory store.");
     return false;
   }
 };

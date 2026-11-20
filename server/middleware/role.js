@@ -1,20 +1,16 @@
-/**
- * Role-based access control middleware
- * Usage: authorize('admin') or authorize('owner', 'admin')
- */
 const authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
         success: false,
-        message: "Not authenticated",
+        message: "Authentication required",
       });
     }
 
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
-        message: `Role '${req.user.role}' is not authorized to access this resource`,
+        message: "Forbidden: you do not have permission to perform this action",
       });
     }
 

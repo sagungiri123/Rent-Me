@@ -1,39 +1,44 @@
-const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { isDbConnected } = require("../config/db");
 const memory = require("../config/memoryStore");
+const { verifyAuthToken } = require("../config/security");
+const { isValidObjectId } = require("../utils/sanitize");
 
-const protect = async (req, res, next) => {
-  let token;
-
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
+async function resolveUserFromToken(token) {
+  const decoded = verifyAuthToken(token);
+  if (!decoded?.id || !isValidObjectId(String(decoded.id))) {
+    return null;
   }
 
-  if (!token) {
+  if (isDbConnected()) {
+    return await User.findById(decoded.id);
+  }
+  return memory.users.find((u) => u._id === decoded.id) || null;
+}
+
+const protect = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({
       success: false,
-      message: "Not authorized — no token provided",
+      message: "Authentication required",
+    });
+  }
+
+  const token = authHeader.slice(7).trim();
+  if (!token || token.length > 2048) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid authentication token",
     });
   }
 
   try {
-    const decoded = jwt.verify(token, memory.JWT_SECRET());
-
-    let user;
-    if (isDbConnected()) {
-      user = await User.findById(decoded.id);
-    } else {
-      user = memory.users.find((u) => u._id === decoded.id);
-    }
-
+    const user = await resolveUserFromToken(token);
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "User belonging to this token no longer exists",
+        message: "Authentication session is no longer valid",
       });
     }
 
@@ -46,12 +51,34 @@ const protect = async (req, res, next) => {
 
     req.user = user;
     next();
-  } catch (error) {
+  } catch {
     return res.status(401).json({
       success: false,
-      message: "Not authorized — invalid token",
+      message: "Invalid or expired authentication token",
     });
   }
 };
 
-module.exports = { protect };
+/**
+ * Optional authentication for public routes that grant extra visibility to owners/admins.
+ */
+const optionalAuth = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return next();
+  }
+  const token = authHeader.slice(7).trim();
+  if (!token || token.length > 2048) return next();
+
+  try {
+    const user = await resolveUserFromToken(token);
+    if (user && !user.isSuspended) {
+      req.user = user;
+    }
+  } catch {
+    // Proceed as unauthenticated guest
+  }
+  next();
+};
+
+module.exports = { protect, optionalAuth };

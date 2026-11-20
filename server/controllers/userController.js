@@ -3,13 +3,12 @@ const Listing = require("../models/Listing");
 const Verification = require("../models/Verification");
 const { isDbConnected } = require("../config/db");
 const memory = require("../config/memoryStore");
-
-const toPublicFileUrl = (file) => {
-  if (!file) return "";
-  if (file.location) return file.location;
-  if (file.filename) return `/uploads/${file.filename}`;
-  return file.path || "";
-};
+const {
+  sanitizeText,
+  sanitizePhone,
+  sanitizeSafeUrl,
+  isValidObjectId,
+} = require("../utils/sanitize");
 
 const getProfile = async (req, res) => {
   try {
@@ -18,32 +17,55 @@ const getProfile = async (req, res) => {
       return res.status(200).json({ success: true, data: { user: memory.sanitizeUser(user) } });
     }
     const user = await User.findById(req.user._id);
-    res.status(200).json({ success: true, data: { user } });
+    return res.status(200).json({ success: true, data: { user } });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to get profile", error: error.message });
+    console.error("[Users] getProfile error:", error.message);
+    return res.status(500).json({ success: false, message: "Failed to load profile" });
   }
 };
 
 const updateProfile = async (req, res) => {
   try {
-    const allowedFields = ["name", "phone", "collegeName", "avatar"];
     const updates = {};
-    allowedFields.forEach((field) => {
-      if (req.body[field] !== undefined) updates[field] = req.body[field];
-    });
-    if (req.file) updates.avatar = toPublicFileUrl(req.file);
+    if (req.body?.name !== undefined) {
+      const cleanName = sanitizeText(req.body.name, 50);
+      if (cleanName.length < 2) {
+        return res.status(400).json({ success: false, message: "Name must be 2–50 characters" });
+      }
+      updates.name = cleanName;
+    }
+    if (req.body?.phone !== undefined) {
+      updates.phone = sanitizePhone(req.body.phone);
+    }
+    if (req.body?.collegeName !== undefined && req.user.role === "student") {
+      updates.collegeName = sanitizeText(req.body.collegeName, 120);
+    }
+    if (req.file?.filename) {
+      updates.avatar = `/uploads/${req.file.filename}`;
+    } else if (typeof req.body?.avatar === "string" && req.body.avatar.trim()) {
+      const safeAvatar = sanitizeSafeUrl(req.body.avatar);
+      if (safeAvatar) updates.avatar = safeAvatar;
+    }
 
     if (!isDbConnected()) {
       const user = memory.users.find((u) => u._id === req.user._id);
       if (!user) return res.status(404).json({ success: false, message: "User not found" });
       Object.assign(user, updates, { updatedAt: new Date().toISOString() });
-      return res.status(200).json({ success: true, message: "Profile updated", data: { user: memory.sanitizeUser(user) } });
+      return res.status(200).json({
+        success: true,
+        message: "Profile updated",
+        data: { user: memory.sanitizeUser(user) },
+      });
     }
 
-    const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true, runValidators: true });
-    res.status(200).json({ success: true, message: "Profile updated", data: { user } });
+    const user = await User.findByIdAndUpdate(req.user._id, updates, {
+      new: true,
+      runValidators: true,
+    });
+    return res.status(200).json({ success: true, message: "Profile updated", data: { user } });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to update profile", error: error.message });
+    console.error("[Users] updateProfile error:", error.message);
+    return res.status(500).json({ success: false, message: "Failed to update profile" });
   }
 };
 
@@ -52,28 +74,33 @@ const getSavedListings = async (req, res) => {
     if (!isDbConnected()) {
       const user = memory.users.find((u) => u._id === req.user._id);
       const saved = (user?.savedListings || [])
-        .map((id) => memory.listings.find((l) => l._id === id))
+        .map((id) => memory.listings.find((l) => l._id === id && l.status === "approved"))
         .filter(Boolean)
-        .map((l) => memory.populateOwner(l));
+        .map((l) => memory.populateOwner(l, { includeContact: false }));
       return res.status(200).json({ success: true, data: { listings: saved } });
     }
 
     const user = await User.findById(req.user._id).populate({
       path: "savedListings",
-      populate: { path: "owner", select: "name phone avatar" },
+      match: { status: "approved" },
+      populate: { path: "owner", select: "name avatar" },
     });
-    res.status(200).json({ success: true, data: { listings: user.savedListings } });
+    return res.status(200).json({ success: true, data: { listings: user.savedListings } });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to get saved listings", error: error.message });
+    console.error("[Users] getSavedListings error:", error.message);
+    return res.status(500).json({ success: false, message: "Failed to load saved listings" });
   }
 };
 
 const toggleSaveListing = async (req, res) => {
   try {
     const { listingId } = req.params;
+    if (!isValidObjectId(listingId)) {
+      return res.status(404).json({ success: false, message: "Listing not found" });
+    }
 
     if (!isDbConnected()) {
-      const listing = memory.listings.find((l) => l._id === listingId);
+      const listing = memory.listings.find((l) => l._id === listingId && l.status === "approved");
       if (!listing) return res.status(404).json({ success: false, message: "Listing not found" });
 
       const user = memory.users.find((u) => u._id === req.user._id);
@@ -82,14 +109,16 @@ const toggleSaveListing = async (req, res) => {
 
       if (idx > -1) {
         user.savedListings.splice(idx, 1);
-        return res.status(200).json({ success: true, message: "Listing removed from saved", data: { saved: false } });
+        return res
+          .status(200)
+          .json({ success: true, message: "Listing removed from saved", data: { saved: false } });
       } else {
         user.savedListings.push(listingId);
         return res.status(200).json({ success: true, message: "Listing saved", data: { saved: true } });
       }
     }
 
-    const listing = await Listing.findById(listingId);
+    const listing = await Listing.findOne({ _id: listingId, status: "approved" });
     if (!listing) return res.status(404).json({ success: false, message: "Listing not found" });
 
     const user = await User.findById(req.user._id);
@@ -98,14 +127,17 @@ const toggleSaveListing = async (req, res) => {
     if (savedIndex > -1) {
       user.savedListings.splice(savedIndex, 1);
       await user.save();
-      res.status(200).json({ success: true, message: "Listing removed from saved", data: { saved: false } });
+      return res
+        .status(200)
+        .json({ success: true, message: "Listing removed from saved", data: { saved: false } });
     } else {
       user.savedListings.push(listingId);
       await user.save();
-      res.status(200).json({ success: true, message: "Listing saved", data: { saved: true } });
+      return res.status(200).json({ success: true, message: "Listing saved", data: { saved: true } });
     }
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to toggle save", error: error.message });
+    console.error("[Users] toggleSaveListing error:", error.message);
+    return res.status(500).json({ success: false, message: "Failed to update saved list" });
   }
 };
 
@@ -119,42 +151,44 @@ const getMyListings = async (req, res) => {
     }
 
     const listings = await Listing.find({ owner: req.user._id }).sort({ createdAt: -1 });
-    res.status(200).json({ success: true, data: { listings } });
+    return res.status(200).json({ success: true, data: { listings } });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to get your listings", error: error.message });
+    console.error("[Users] getMyListings error:", error.message);
+    return res.status(500).json({ success: false, message: "Failed to load your listings" });
   }
 };
 
 const submitVerification = async (req, res) => {
   try {
-    const { documentType } = req.body;
+    const { documentType } = req.body || {};
     if (!documentType || !["citizenship", "ownership_proof", "college_id"].includes(documentType)) {
       return res.status(400).json({ success: false, message: "A valid document type is required" });
     }
 
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: "A verification document is required" });
+    if (!req.file?.filename) {
+      return res.status(400).json({ success: false, message: "A valid verification document image is required" });
     }
 
-    const documentUrl = toPublicFileUrl(req.file);
-    if (!documentUrl) {
-      return res.status(500).json({ success: false, message: "Failed to upload verification document" });
-    }
+    // Store private filename reference — served ONLY via authenticated admin endpoint, never public /uploads
+    const privateRef = `private:${req.file.filename}`;
 
     if (!isDbConnected()) {
       const existingPending = memory.verifications.find(
         (v) => v.user === req.user._id && v.status === "pending"
       );
       if (existingPending) {
-        return res.status(400).json({ success: false, message: "You already have a pending verification request" });
+        return res
+          .status(400)
+          .json({ success: false, message: "You already have a pending verification request" });
       }
 
       const nowIso = new Date().toISOString();
+      const id = memory.genId();
       const verification = {
-        _id: memory.genId(),
+        _id: id,
         user: req.user._id,
         documentType,
-        documentUrl,
+        documentUrl: privateRef,
         status: "pending",
         reviewedBy: null,
         reviewNotes: "",
@@ -171,27 +205,55 @@ const submitVerification = async (req, res) => {
       return res.status(201).json({
         success: true,
         message: "Verification submitted successfully",
-        data: { verification },
+        data: {
+          verification: {
+            _id: verification._id,
+            documentType: verification.documentType,
+            status: verification.status,
+            submittedAt: verification.submittedAt,
+          },
+        },
       });
     }
 
     const existingPending = await Verification.findOne({ user: req.user._id, status: "pending" });
     if (existingPending) {
-      return res.status(400).json({ success: false, message: "You already have a pending verification request" });
+      return res
+        .status(400)
+        .json({ success: false, message: "You already have a pending verification request" });
     }
 
     const verification = await Verification.create({
       user: req.user._id,
       documentType,
-      documentUrl,
+      documentUrl: privateRef,
     });
 
     await User.findByIdAndUpdate(req.user._id, { verificationStatus: "pending" });
 
-    res.status(201).json({ success: true, message: "Verification submitted successfully", data: { verification } });
+    return res.status(201).json({
+      success: true,
+      message: "Verification submitted successfully",
+      data: {
+        verification: {
+          _id: verification._id,
+          documentType: verification.documentType,
+          status: verification.status,
+          submittedAt: verification.submittedAt,
+        },
+      },
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to submit verification", error: error.message });
+    console.error("[Users] submitVerification error:", error.message);
+    return res.status(500).json({ success: false, message: "Failed to submit verification" });
   }
 };
 
-module.exports = { getProfile, updateProfile, getSavedListings, toggleSaveListing, getMyListings, submitVerification };
+module.exports = {
+  getProfile,
+  updateProfile,
+  getSavedListings,
+  toggleSaveListing,
+  getMyListings,
+  submitVerification,
+};

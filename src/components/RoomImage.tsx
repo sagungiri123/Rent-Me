@@ -8,10 +8,23 @@ interface RoomImageProps {
   aspectClass?: string;
 }
 
+function isSafeImageSrc(src?: string): boolean {
+  if (!src) return false;
+  const trimmed = src.trim();
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//") && !trimmed.includes("..")) return true;
+  if (trimmed.startsWith("blob:")) return true;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function RoomImage({ src, alt, className = "", aspectClass = "aspect-[4/3]" }: RoomImageProps) {
   const [failed, setFailed] = useState(false);
 
-  if (!src || failed) {
+  if (!isSafeImageSrc(src) || failed) {
     return (
       <div
         className={`${aspectClass} ${className} flex flex-col items-center justify-center bg-[#EFECE6] text-[#6B6E72] px-4 text-center`}

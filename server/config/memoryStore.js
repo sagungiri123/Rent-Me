@@ -1,9 +1,6 @@
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-
-const JWT_SECRET = () => process.env.JWT_SECRET || "rentme-kathmandu-valley-secret-key";
-const JWT_EXPIRE = () => process.env.JWT_EXPIRE || "7d";
+const { BCRYPT_ROUNDS, signAuthToken } = require("./security");
 
 const PHOTOS = {
   modernFlat: "/assets/aistudio/8e1fdf0b-557a-4c73-9f55-fdf426a5a9f5_c7dbbc3a.jpeg",
@@ -15,15 +12,14 @@ const PHOTOS = {
 const genId = () => crypto.randomBytes(12).toString("hex");
 
 function signToken(user) {
-  return jwt.sign({ id: user._id, role: user.role }, JWT_SECRET(), {
-    expiresIn: JWT_EXPIRE(),
-  });
+  return signAuthToken(user);
 }
 
 function sanitizeUser(user) {
   if (!user) return null;
   const copy = { ...user };
   delete copy.password;
+  delete copy.googleId;
   return copy;
 }
 
@@ -32,7 +28,8 @@ const ownerId = "66a100000000000000000002";
 const ownerPendingId = "66a100000000000000000004";
 const studentId = "66a100000000000000000003";
 
-const hashSync = (pw) => bcrypt.hashSync(pw, 10);
+// Cost-12 bcrypt hashes for non-production sandbox seed accounts
+const hashSeed = (pw) => bcrypt.hashSync(pw, BCRYPT_ROUNDS);
 
 const now = Date.now();
 const daysAgo = (d) => new Date(now - d * 86400000).toISOString();
@@ -42,7 +39,7 @@ const users = [
     _id: adminId,
     name: "Prakash Adhikari",
     email: "admin@rentme.com",
-    password: hashSync("admin123"),
+    password: hashSeed(process.env.SEED_ADMIN_PASSWORD || "Admin@1234"),
     role: "admin",
     phone: "+977-9841000001",
     avatar: "",
@@ -58,7 +55,7 @@ const users = [
     _id: ownerId,
     name: "Sunita Shakya",
     email: "owner@rentme.com",
-    password: hashSync("owner123"),
+    password: hashSeed(process.env.SEED_OWNER_PASSWORD || "Owner@1234"),
     role: "owner",
     phone: "+977-9851123456",
     avatar: "",
@@ -74,7 +71,7 @@ const users = [
     _id: studentId,
     name: "Aarav Shrestha",
     email: "student@rentme.com",
-    password: hashSync("student123"),
+    password: hashSeed(process.env.SEED_STUDENT_PASSWORD || "Student@1234"),
     role: "student",
     phone: "+977-9860456789",
     avatar: "",
@@ -90,7 +87,7 @@ const users = [
     _id: ownerPendingId,
     name: "Bikram Maharjan",
     email: "bikram.owner@rentme.com",
-    password: hashSync("owner123"),
+    password: hashSeed(process.env.SEED_OWNER_PASSWORD || "Owner@1234"),
     role: "owner",
     phone: "+977-9841789012",
     avatar: "",
@@ -335,17 +332,20 @@ const verifications = [
   },
 ];
 
-function populateOwner(listing, includeEmail = false) {
+/**
+ * Populates owner summary on listings.
+ * By default, NEVER exposes owner phone or email publicly — only when includeContact=true (admin/revealContact).
+ */
+function populateOwner(listing, { includeContact = false } = {}) {
   const owner = users.find((u) => u._id === listing.owner);
   const ownerObj = owner
     ? {
         _id: owner._id,
         name: owner.name,
-        phone: owner.phone || "",
         avatar: owner.avatar || "",
-        ...(includeEmail ? { email: owner.email } : {}),
+        ...(includeContact ? { phone: owner.phone || "", email: owner.email } : {}),
       }
-    : { _id: listing.owner, name: "Property Owner", phone: "", avatar: "" };
+    : { _id: listing.owner, name: "Property Owner", avatar: "" };
   return { ...listing, owner: ownerObj };
 }
 
@@ -374,5 +374,4 @@ module.exports = {
   sanitizeUser,
   populateOwner,
   populateUserForVerification,
-  JWT_SECRET,
 };

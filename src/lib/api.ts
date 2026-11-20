@@ -255,4 +255,14 @@ export const api = {
       method: "PUT",
     });
   },
+
+  async fetchAuthorizedBlobUrl(url: string): Promise<string> {
+    const token = getStoredToken();
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error("Could not load private document");
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  },
 };

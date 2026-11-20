@@ -385,10 +385,9 @@ export function AdminDashboardView({ onOpenListing, onNotify }: AdminDashboardVi
                   key={item._id}
                   className="bg-white border border-[#E6E3DC] rounded-xl overflow-hidden flex flex-col"
                 >
-                  <RoomImage
-                    src={item.documentUrl}
+                  <PrivateDocumentPreview
+                    url={item.documentUrl}
                     alt={`${item.user.name} verification document`}
-                    aspectClass="aspect-[16/10]"
                   />
                   <div className="p-5 flex-1 flex flex-col gap-3">
                     <div className="flex items-center justify-between text-xs text-[#64686D]">
@@ -550,4 +549,34 @@ export function AdminDashboardView({ onOpenListing, onNotify }: AdminDashboardVi
       )}
     </div>
   );
+}
+
+function PrivateDocumentPreview({ url, alt }: { url: string; alt: string }) {
+  const [resolvedSrc, setResolvedSrc] = useState<string>(
+    url.startsWith("/api/admin/") ? "" : url
+  );
+
+  useEffect(() => {
+    if (!url.startsWith("/api/admin/")) {
+      setResolvedSrc(url);
+      return;
+    }
+    let active = true;
+    let createdBlobUrl = "";
+    api
+      .fetchAuthorizedBlobUrl(url)
+      .then((blobUrl) => {
+        createdBlobUrl = blobUrl;
+        if (active) setResolvedSrc(blobUrl);
+      })
+      .catch(() => {
+        if (active) setResolvedSrc("");
+      });
+    return () => {
+      active = false;
+      if (createdBlobUrl) URL.revokeObjectURL(createdBlobUrl);
+    };
+  }, [url]);
+
+  return <RoomImage src={resolvedSrc} alt={alt} aspectClass="aspect-[16/10]" />;
 }

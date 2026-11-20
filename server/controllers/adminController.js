@@ -1,32 +1,106 @@
+const path = require("path");
+const fs = require("fs");
 const User = require("../models/User");
 const Listing = require("../models/Listing");
 const Verification = require("../models/Verification");
 const { isDbConnected } = require("../config/db");
 const memory = require("../config/memoryStore");
+const { privateVerificationsDir } = require("../middleware/upload");
+const { sanitizeText, isValidObjectId } = require("../utils/sanitize");
+
+const VALID_VERIFICATION_FILTERS = new Set(["pending", "approved", "rejected", "all"]);
+const VALID_LISTING_FILTERS = new Set(["pending", "approved", "rejected", "all"]);
+const VALID_ROLE_FILTERS = new Set(["student", "owner", "admin"]);
+
+function mapVerificationDocumentUrl(v) {
+  if (typeof v.documentUrl === "string" && v.documentUrl.startsWith("private:")) {
+    return {
+      ...v,
+      documentUrl: `/api/admin/verifications/${v._id}/document`,
+      isPrivateDocument: true,
+    };
+  }
+  return v;
+}
 
 const getVerifications = async (req, res) => {
   try {
-    const { status = "pending" } = req.query;
+    const rawStatus = String(req.query.status || "pending");
+    const status = VALID_VERIFICATION_FILTERS.has(rawStatus) ? rawStatus : "pending";
 
     if (!isDbConnected()) {
       const items = memory.verifications
         .filter((v) => (status === "all" ? true : v.status === status))
         .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
-        .map((v) => memory.populateUserForVerification(v));
+        .map((v) => mapVerificationDocumentUrl(memory.populateUserForVerification(v)));
       return res.status(200).json({ success: true, data: { verifications: items } });
     }
 
     const query = status === "all" ? {} : { status };
-    const verifications = await Verification.find(query).populate("user", "name email phone role").sort({ submittedAt: -1 });
-    res.status(200).json({ success: true, data: { verifications } });
+    const docs = await Verification.find(query)
+      .populate("user", "name email phone role")
+      .sort({ submittedAt: -1 })
+      .lean();
+
+    const verifications = docs.map(mapVerificationDocumentUrl);
+    return res.status(200).json({ success: true, data: { verifications } });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to get verifications", error: error.message });
+    console.error("[Admin] getVerifications error:", error.message);
+    return res.status(500).json({ success: false, message: "Failed to fetch verifications" });
+  }
+};
+
+/**
+ * Authenticated admin-only stream for private owner verification documents.
+ */
+const getVerificationDocument = async (req, res) => {
+  try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(404).json({ success: false, message: "Document not found" });
+    }
+
+    const verification = isDbConnected()
+      ? await Verification.findById(req.params.id)
+      : memory.verifications.find((v) => v._id === req.params.id);
+
+    if (!verification || typeof verification.documentUrl !== "string") {
+      return res.status(404).json({ success: false, message: "Document not found" });
+    }
+
+    if (!verification.documentUrl.startsWith("private:")) {
+      return res.status(404).json({ success: false, message: "Document not stored locally" });
+    }
+
+    const safeFileName = path.basename(verification.documentUrl.slice("private:".length));
+    const resolvedPath = path.resolve(privateVerificationsDir, safeFileName);
+
+    // Prevent path traversal outside privateVerificationsDir
+    if (!resolvedPath.startsWith(path.resolve(privateVerificationsDir) + path.sep)) {
+      return res.status(403).json({ success: false, message: "Invalid document path" });
+    }
+
+    if (!fs.existsSync(resolvedPath)) {
+      return res.status(404).json({ success: false, message: "Document file not found" });
+    }
+
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.sendFile(resolvedPath);
+  } catch (error) {
+    console.error("[Admin] getVerificationDocument error:", error.message);
+    return res.status(500).json({ success: false, message: "Failed to load document" });
   }
 };
 
 const reviewVerification = async (req, res) => {
   try {
-    const { status, reviewNotes } = req.body;
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(404).json({ success: false, message: "Verification not found" });
+    }
+
+    const { status } = req.body || {};
+    const reviewNotes = sanitizeText(req.body?.reviewNotes || "", 500);
+
     if (!["approved", "rejected"].includes(status)) {
       return res.status(400).json({ success: false, message: "Status must be 'approved' or 'rejected'" });
     }
@@ -37,7 +111,7 @@ const reviewVerification = async (req, res) => {
 
       verification.status = status;
       verification.reviewedBy = req.user._id;
-      verification.reviewNotes = reviewNotes || "";
+      verification.reviewNotes = reviewNotes;
       verification.reviewedAt = new Date().toISOString();
       verification.updatedAt = verification.reviewedAt;
 
@@ -50,7 +124,9 @@ const reviewVerification = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: `Verification ${status}`,
-        data: { verification: memory.populateUserForVerification(verification) },
+        data: {
+          verification: mapVerificationDocumentUrl(memory.populateUserForVerification(verification)),
+        },
       });
     }
 
@@ -59,7 +135,7 @@ const reviewVerification = async (req, res) => {
 
     verification.status = status;
     verification.reviewedBy = req.user._id;
-    verification.reviewNotes = reviewNotes || "";
+    verification.reviewNotes = reviewNotes;
     verification.reviewedAt = new Date();
     await verification.save();
 
@@ -68,24 +144,32 @@ const reviewVerification = async (req, res) => {
       isVerified: status === "approved",
     });
 
-    res.status(200).json({ success: true, message: `Verification ${status}`, data: { verification } });
+    return res.status(200).json({
+      success: true,
+      message: `Verification ${status}`,
+      data: { verification },
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to review verification", error: error.message });
+    console.error("[Admin] reviewVerification error:", error.message);
+    return res.status(500).json({ success: false, message: "Failed to review verification" });
   }
 };
 
 const getAdminListings = async (req, res) => {
   try {
-    const { status = "pending", page = 1, limit = 20 } = req.query;
+    const rawStatus = String(req.query.status || "pending");
+    const status = VALID_LISTING_FILTERS.has(rawStatus) ? rawStatus : "pending";
+    const pageNum = Math.max(1, Math.min(1000, parseInt(String(req.query.page || "1"), 10) || 1));
+    const limitNum = Math.max(1, Math.min(50, parseInt(String(req.query.limit || "20"), 10) || 20));
 
     if (!isDbConnected()) {
       let filtered = status === "all" ? [...memory.listings] : memory.listings.filter((l) => l.status === status);
       filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       const total = filtered.length;
-      const pageNum = Number(page);
-      const limitNum = Number(limit);
       const skip = (pageNum - 1) * limitNum;
-      const paged = filtered.slice(skip, skip + limitNum).map((l) => memory.populateOwner(l, true));
+      const paged = filtered
+        .slice(skip, skip + limitNum)
+        .map((l) => memory.populateOwner(l, { includeContact: true }));
 
       return res.status(200).json({
         success: true,
@@ -97,25 +181,35 @@ const getAdminListings = async (req, res) => {
     }
 
     const query = status === "all" ? {} : { status };
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip = (pageNum - 1) * limitNum;
 
     const [listings, total] = await Promise.all([
-      Listing.find(query).populate("owner", "name email phone").sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
+      Listing.find(query).populate("owner", "name email phone").sort({ createdAt: -1 }).skip(skip).limit(limitNum),
       Listing.countDocuments(query),
     ]);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      data: { listings, pagination: { page: Number(page), limit: Number(limit), total, pages: Math.ceil(total / Number(limit)) } },
+      data: {
+        listings,
+        pagination: { page: pageNum, limit: limitNum, total, pages: Math.max(1, Math.ceil(total / limitNum)) },
+      },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to get listings", error: error.message });
+    console.error("[Admin] getAdminListings error:", error.message);
+    return res.status(500).json({ success: false, message: "Failed to fetch listings" });
   }
 };
 
 const reviewListing = async (req, res) => {
   try {
-    const { status, rejectionReason } = req.body;
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(404).json({ success: false, message: "Listing not found" });
+    }
+
+    const { status } = req.body || {};
+    const rejectionReason = sanitizeText(req.body?.rejectionReason || "", 300);
+
     if (!["approved", "rejected"].includes(status)) {
       return res.status(400).json({ success: false, message: "Status must be 'approved' or 'rejected'" });
     }
@@ -125,13 +219,14 @@ const reviewListing = async (req, res) => {
       if (!listing) return res.status(404).json({ success: false, message: "Listing not found" });
 
       listing.status = status;
-      listing.rejectionReason = status === "rejected" ? rejectionReason || "Does not meet listing guidelines" : undefined;
+      listing.rejectionReason =
+        status === "rejected" ? rejectionReason || "Does not meet listing guidelines" : undefined;
       listing.updatedAt = new Date().toISOString();
 
       return res.status(200).json({
         success: true,
         message: `Listing ${status}`,
-        data: { listing: memory.populateOwner(listing, true) },
+        data: { listing: memory.populateOwner(listing, { includeContact: true }) },
       });
     }
 
@@ -143,22 +238,24 @@ const reviewListing = async (req, res) => {
 
     if (!listing) return res.status(404).json({ success: false, message: "Listing not found" });
 
-    res.status(200).json({ success: true, message: `Listing ${status}`, data: { listing } });
+    return res.status(200).json({ success: true, message: `Listing ${status}`, data: { listing } });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to review listing", error: error.message });
+    console.error("[Admin] reviewListing error:", error.message);
+    return res.status(500).json({ success: false, message: "Failed to review listing" });
   }
 };
 
 const getUsers = async (req, res) => {
   try {
-    const { role, page = 1, limit = 20 } = req.query;
+    const rawRole = typeof req.query.role === "string" ? req.query.role : "";
+    const role = VALID_ROLE_FILTERS.has(rawRole) ? rawRole : "";
+    const pageNum = Math.max(1, Math.min(1000, parseInt(String(req.query.page || "1"), 10) || 1));
+    const limitNum = Math.max(1, Math.min(50, parseInt(String(req.query.limit || "20"), 10) || 20));
 
     if (!isDbConnected()) {
       let filtered = role ? memory.users.filter((u) => u.role === role) : [...memory.users];
       filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       const total = filtered.length;
-      const pageNum = Number(page);
-      const limitNum = Number(limit);
       const skip = (pageNum - 1) * limitNum;
       const paged = filtered.slice(skip, skip + limitNum).map((u) => memory.sanitizeUser(u));
 
@@ -172,28 +269,42 @@ const getUsers = async (req, res) => {
     }
 
     const query = role ? { role } : {};
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip = (pageNum - 1) * limitNum;
 
     const [users, total] = await Promise.all([
-      User.find(query).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
+      User.find(query).sort({ createdAt: -1 }).skip(skip).limit(limitNum),
       User.countDocuments(query),
     ]);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      data: { users, pagination: { page: Number(page), limit: Number(limit), total, pages: Math.ceil(total / Number(limit)) } },
+      data: {
+        users,
+        pagination: { page: pageNum, limit: limitNum, total, pages: Math.max(1, Math.ceil(total / limitNum)) },
+      },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to get users", error: error.message });
+    console.error("[Admin] getUsers error:", error.message);
+    return res.status(500).json({ success: false, message: "Failed to fetch users" });
   }
 };
 
 const toggleSuspendUser = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    if (String(req.params.id) === String(req.user._id)) {
+      return res.status(400).json({ success: false, message: "Cannot suspend your own account" });
+    }
+
     if (!isDbConnected()) {
       const user = memory.users.find((u) => u._id === req.params.id);
       if (!user) return res.status(404).json({ success: false, message: "User not found" });
-      if (user.role === "admin") return res.status(400).json({ success: false, message: "Cannot suspend admin accounts" });
+      if (user.role === "admin") {
+        return res.status(400).json({ success: false, message: "Cannot suspend admin accounts" });
+      }
       user.isSuspended = !user.isSuspended;
       user.updatedAt = new Date().toISOString();
       return res.status(200).json({
@@ -205,14 +316,21 @@ const toggleSuspendUser = async (req, res) => {
 
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
-    if (user.role === "admin") return res.status(400).json({ success: false, message: "Cannot suspend admin accounts" });
+    if (user.role === "admin") {
+      return res.status(400).json({ success: false, message: "Cannot suspend admin accounts" });
+    }
 
     user.isSuspended = !user.isSuspended;
     await user.save();
 
-    res.status(200).json({ success: true, message: `User ${user.isSuspended ? "suspended" : "unsuspended"}`, data: { user } });
+    return res.status(200).json({
+      success: true,
+      message: `User ${user.isSuspended ? "suspended" : "unsuspended"}`,
+      data: { user },
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to toggle suspension", error: error.message });
+    console.error("[Admin] toggleSuspendUser error:", error.message);
+    return res.status(500).json({ success: false, message: "Failed to update account status" });
   }
 };
 
@@ -231,7 +349,15 @@ const getAnalytics = async (req, res) => {
       return res.status(200).json({ success: true, data: { analytics } });
     }
 
-    const [totalUsers, totalStudents, totalOwners, totalListings, approvedListings, pendingListings, pendingVerifications] = await Promise.all([
+    const [
+      totalUsers,
+      totalStudents,
+      totalOwners,
+      totalListings,
+      approvedListings,
+      pendingListings,
+      pendingVerifications,
+    ] = await Promise.all([
       User.countDocuments(),
       User.countDocuments({ role: "student" }),
       User.countDocuments({ role: "owner" }),
@@ -241,15 +367,33 @@ const getAnalytics = async (req, res) => {
       Verification.countDocuments({ status: "pending" }),
     ]);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
-        analytics: { totalUsers, totalStudents, totalOwners, totalListings, approvedListings, pendingListings, pendingVerifications },
+        analytics: {
+          totalUsers,
+          totalStudents,
+          totalOwners,
+          totalListings,
+          approvedListings,
+          pendingListings,
+          pendingVerifications,
+        },
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to get analytics", error: error.message });
+    console.error("[Admin] getAnalytics error:", error.message);
+    return res.status(500).json({ success: false, message: "Failed to load analytics" });
   }
 };
 
-module.exports = { getVerifications, reviewVerification, getAdminListings, reviewListing, getUsers, toggleSuspendUser, getAnalytics };
+module.exports = {
+  getVerifications,
+  getVerificationDocument,
+  reviewVerification,
+  getAdminListings,
+  reviewListing,
+  getUsers,
+  toggleSuspendUser,
+  getAnalytics,
+};

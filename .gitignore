@@ -1,27 +1,28 @@
 # Dependencies
 node_modules/
 
-# Environment
+# Environment & Secrets (never commit real secrets)
 .env
-.env.local
-.env.production
-.env.example
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
 
-# Next.js
-client/.next/
-client/out/
+# Build output
+dist/
 
-# Uploads
+# Uploaded user files & private verification documents
 server/uploads/
+server/private_uploads/
 
-# OS files
+# OS & Editor files
 .DS_Store
 Thumbs.db
-
-# IDE
 .vscode/
 .idea/
 
-# Logs
+# Logs & Test artifacts
 *.log
 npm-debug.log*
+.playwright-cli/

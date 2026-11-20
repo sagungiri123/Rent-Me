@@ -1,12 +1,19 @@
 const Listing = require("../models/Listing");
 const { isDbConnected } = require("../config/db");
 const memory = require("../config/memoryStore");
+const {
+  VALID_DISTRICTS,
+  VALID_ROOM_TYPES,
+  VALID_AMENITIES,
+  escapeRegex,
+  isValidObjectId,
+  pickAllowedListingFields,
+} = require("../utils/sanitize");
 
 const toPublicFileUrl = (file) => {
   if (!file) return "";
-  if (file.location) return file.location;
   if (file.filename) return `/uploads/${file.filename}`;
-  return file.path || "";
+  return "";
 };
 
 const createListing = async (req, res) => {
@@ -18,65 +25,34 @@ const createListing = async (req, res) => {
       });
     }
 
+    const parsed = pickAllowedListingFields(req.body || {}, { partial: false });
+    if (parsed.error) {
+      return res.status(400).json({ success: false, message: parsed.error });
+    }
+
+    const uploadedPhotos =
+      Array.isArray(req.files) && req.files.length > 0
+        ? req.files.map(toPublicFileUrl).filter(Boolean)
+        : [];
+
     const listingData = {
-      ...req.body,
+      ...parsed.data,
       owner: req.user._id,
       status: "pending",
+      isAvailable: true,
+      views: 0,
+      contactRequests: 0,
+      photos:
+        uploadedPhotos.length > 0
+          ? uploadedPhotos
+          : ["/assets/aistudio/9303aad1-a51d-4e47-843e-516186d2bcd4_71268c90.jpeg"],
     };
 
-    if (req.files && req.files.length > 0) {
-      listingData.photos = req.files.map(toPublicFileUrl);
-    }
-
-    if (typeof req.body.location === "string") {
-      listingData.location = JSON.parse(req.body.location);
-    }
-
-    if (typeof req.body.amenities === "string") {
-      listingData.amenities = JSON.parse(req.body.amenities);
-    }
-
-    if (listingData.rent !== undefined) listingData.rent = Number(listingData.rent);
-    if (listingData.deposit !== undefined) listingData.deposit = Number(listingData.deposit);
-
     if (!isDbConnected()) {
-      if (!listingData.title || !listingData.description || !listingData.roomType || !listingData.location?.district) {
-        return res.status(400).json({
-          success: false,
-          message: "Title, description, room type, and location district are required",
-        });
-      }
-
       const nowIso = new Date().toISOString();
       const newListing = {
         _id: memory.genId(),
-        owner: req.user._id,
-        title: listingData.title.trim(),
-        description: listingData.description.trim(),
-        roomType: listingData.roomType,
-        rent: Number(listingData.rent) || 0,
-        deposit: Number(listingData.deposit) || 0,
-        location: {
-          district: listingData.location.district,
-          area: (listingData.location.area || "").trim(),
-          address: (listingData.location.address || "").trim(),
-          nearbyCollege: (listingData.location.nearbyCollege || "").trim(),
-          distanceToCollege:
-            listingData.location.distanceToCollege !== undefined && listingData.location.distanceToCollege !== ""
-              ? Number(listingData.location.distanceToCollege)
-              : undefined,
-        },
-        amenities: Array.isArray(listingData.amenities) ? listingData.amenities : [],
-        photos:
-          listingData.photos && listingData.photos.length > 0
-            ? listingData.photos
-            : ["/assets/aistudio/9303aad1-a51d-4e47-843e-516186d2bcd4_71268c90.jpeg"],
-        rules: (listingData.rules || "").trim(),
-        availableFrom: listingData.availableFrom || nowIso,
-        isAvailable: true,
-        status: "pending",
-        views: 0,
-        contactRequests: 0,
+        ...listingData,
         createdAt: nowIso,
         updatedAt: nowIso,
       };
@@ -90,16 +66,16 @@ const createListing = async (req, res) => {
 
     const listing = await Listing.create(listingData);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Listing created and submitted for review",
       data: { listing },
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("[Listings] create error:", error.message);
+    return res.status(500).json({
       success: false,
       message: "Failed to create listing",
-      error: error.message,
     });
   }
 };
@@ -116,9 +92,31 @@ const getListings = async (req, res) => {
       nearbyCollege,
       available,
       sort,
-      page = 1,
-      limit = 12,
+      page = "1",
+      limit = "12",
     } = req.query;
+
+    const pageNum = Math.max(1, Math.min(1000, parseInt(String(page), 10) || 1));
+    const limitNum = Math.max(1, Math.min(50, parseInt(String(limit), 10) || 12));
+
+    const safeDistrict =
+      typeof district === "string" && VALID_DISTRICTS.has(district) ? district : "";
+    const safeRoomType =
+      typeof roomType === "string" && VALID_ROOM_TYPES.has(roomType) ? roomType : "";
+    const safeArea = typeof area === "string" ? escapeRegex(area.trim()) : "";
+    const safeCollege =
+      typeof nearbyCollege === "string" ? escapeRegex(nearbyCollege.trim()) : "";
+
+    const minRentNum = minRent !== undefined && minRent !== "" ? Number(minRent) : NaN;
+    const maxRentNum = maxRent !== undefined && maxRent !== "" ? Number(maxRent) : NaN;
+
+    const safeAmenities =
+      typeof amenities === "string"
+        ? amenities
+            .split(",")
+            .map((a) => a.trim())
+            .filter((a) => VALID_AMENITIES.has(a))
+        : [];
 
     if (!isDbConnected()) {
       let filtered = memory.listings.filter((l) => l.status === "approved");
@@ -126,11 +124,11 @@ const getListings = async (req, res) => {
       if (available !== "false") {
         filtered = filtered.filter((l) => l.isAvailable === true);
       }
-      if (district) {
-        filtered = filtered.filter((l) => l.location.district === district);
+      if (safeDistrict) {
+        filtered = filtered.filter((l) => l.location.district === safeDistrict);
       }
-      if (area) {
-        const re = new RegExp(area, "i");
+      if (safeArea) {
+        const re = new RegExp(safeArea, "i");
         filtered = filtered.filter(
           (l) =>
             re.test(l.location.area) ||
@@ -139,21 +137,22 @@ const getListings = async (req, res) => {
             re.test(l.location.nearbyCollege || "")
         );
       }
-      if (minRent) {
-        filtered = filtered.filter((l) => l.rent >= Number(minRent));
+      if (Number.isFinite(minRentNum) && minRentNum >= 0) {
+        filtered = filtered.filter((l) => l.rent >= minRentNum);
       }
-      if (maxRent) {
-        filtered = filtered.filter((l) => l.rent <= Number(maxRent));
+      if (Number.isFinite(maxRentNum) && maxRentNum >= 0) {
+        filtered = filtered.filter((l) => l.rent <= maxRentNum);
       }
-      if (roomType) {
-        filtered = filtered.filter((l) => l.roomType === roomType);
+      if (safeRoomType) {
+        filtered = filtered.filter((l) => l.roomType === safeRoomType);
       }
-      if (amenities) {
-        const amenityList = amenities.split(",").filter(Boolean);
-        filtered = filtered.filter((l) => amenityList.every((a) => (l.amenities || []).includes(a)));
+      if (safeAmenities.length > 0) {
+        filtered = filtered.filter((l) =>
+          safeAmenities.every((a) => (l.amenities || []).includes(a))
+        );
       }
-      if (nearbyCollege) {
-        const re = new RegExp(nearbyCollege, "i");
+      if (safeCollege) {
+        const re = new RegExp(safeCollege, "i");
         filtered = filtered.filter((l) => re.test(l.location.nearbyCollege || ""));
       }
 
@@ -165,10 +164,11 @@ const getListings = async (req, res) => {
       });
 
       const total = filtered.length;
-      const pageNum = Number(page);
-      const limitNum = Number(limit);
       const skip = (pageNum - 1) * limitNum;
-      const paged = filtered.slice(skip, skip + limitNum).map((l) => memory.populateOwner(l));
+      // Never expose owner phone/email on public listing feed
+      const paged = filtered
+        .slice(skip, skip + limitNum)
+        .map((l) => memory.populateOwner(l, { includeContact: false }));
 
       return res.status(200).json({
         success: true,
@@ -189,32 +189,25 @@ const getListings = async (req, res) => {
     if (available !== "false") {
       query.isAvailable = true;
     }
-
-    if (district) {
-      query["location.district"] = district;
+    if (safeDistrict) {
+      query["location.district"] = safeDistrict;
     }
-
-    if (area) {
-      query["location.area"] = { $regex: area, $options: "i" };
+    if (safeArea) {
+      query["location.area"] = { $regex: safeArea, $options: "i" };
     }
-
-    if (minRent || maxRent) {
+    if ((Number.isFinite(minRentNum) && minRentNum >= 0) || (Number.isFinite(maxRentNum) && maxRentNum >= 0)) {
       query.rent = {};
-      if (minRent) query.rent.$gte = Number(minRent);
-      if (maxRent) query.rent.$lte = Number(maxRent);
+      if (Number.isFinite(minRentNum) && minRentNum >= 0) query.rent.$gte = minRentNum;
+      if (Number.isFinite(maxRentNum) && maxRentNum >= 0) query.rent.$lte = maxRentNum;
     }
-
-    if (roomType) {
-      query.roomType = roomType;
+    if (safeRoomType) {
+      query.roomType = safeRoomType;
     }
-
-    if (amenities) {
-      const amenityList = amenities.split(",");
-      query.amenities = { $all: amenityList };
+    if (safeAmenities.length > 0) {
+      query.amenities = { $all: safeAmenities };
     }
-
-    if (nearbyCollege) {
-      query["location.nearbyCollege"] = { $regex: nearbyCollege, $options: "i" };
+    if (safeCollege) {
+      query["location.nearbyCollege"] = { $regex: safeCollege, $options: "i" };
     }
 
     let sortOption = { createdAt: -1 };
@@ -222,117 +215,139 @@ const getListings = async (req, res) => {
     else if (sort === "price_desc") sortOption = { rent: -1 };
     else if (sort === "popular") sortOption = { views: -1 };
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip = (pageNum - 1) * limitNum;
 
     const [listings, total] = await Promise.all([
       Listing.find(query)
-        .populate("owner", "name phone avatar")
+        .populate("owner", "name avatar")
         .sort(sortOption)
         .skip(skip)
-        .limit(Number(limit)),
+        .limit(limitNum),
       Listing.countDocuments(query),
     ]);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         listings,
         pagination: {
-          page: Number(page),
-          limit: Number(limit),
+          page: pageNum,
+          limit: limitNum,
           total,
-          pages: Math.ceil(total / Number(limit)),
+          pages: Math.max(1, Math.ceil(total / limitNum)),
         },
       },
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("[Listings] getListings error:", error.message);
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch listings",
-      error: error.message,
     });
   }
 };
 
 const getListing = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(404).json({ success: false, message: "Listing not found" });
+    }
+
+    const isOwnerOrAdmin = (ownerId) =>
+      Boolean(
+        req.user &&
+          (req.user.role === "admin" || String(ownerId) === String(req.user._id))
+      );
+
     if (!isDbConnected()) {
       const listing = memory.listings.find((l) => l._id === req.params.id);
       if (!listing) {
-        return res.status(404).json({
-          success: false,
-          message: "Listing not found",
-        });
+        return res.status(404).json({ success: false, message: "Listing not found" });
+      }
+      if (listing.status !== "approved" && !isOwnerOrAdmin(listing.owner)) {
+        return res.status(404).json({ success: false, message: "Listing not found" });
       }
       listing.views = (listing.views || 0) + 1;
       return res.status(200).json({
         success: true,
-        data: { listing: memory.populateOwner(listing, true) },
+        data: {
+          listing: memory.populateOwner(listing, {
+            includeContact: isOwnerOrAdmin(listing.owner),
+          }),
+        },
       });
     }
+
+    const rawListing = await Listing.findById(req.params.id);
+    if (!rawListing) {
+      return res.status(404).json({ success: false, message: "Listing not found" });
+    }
+
+    const canSeePrivate = isOwnerOrAdmin(rawListing.owner);
+    if (rawListing.status !== "approved" && !canSeePrivate) {
+      return res.status(404).json({ success: false, message: "Listing not found" });
+    }
+
+    rawListing.views += 1;
+    await rawListing.save();
 
     const listing = await Listing.findById(req.params.id).populate(
       "owner",
-      "name phone email avatar"
+      canSeePrivate ? "name phone email avatar" : "name avatar"
     );
 
-    if (!listing) {
-      return res.status(404).json({
-        success: false,
-        message: "Listing not found",
-      });
-    }
-
-    listing.views += 1;
-    await listing.save();
-
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: { listing },
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("[Listings] getListing error:", error.message);
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch listing",
-      error: error.message,
     });
   }
 };
 
 const updateListing = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(404).json({ success: false, message: "Listing not found" });
+    }
+
+    const parsed = pickAllowedListingFields(req.body || {}, { partial: true });
+    if (parsed.error) {
+      return res.status(400).json({ success: false, message: parsed.error });
+    }
+
+    const newPhotos =
+      Array.isArray(req.files) && req.files.length > 0
+        ? req.files.map(toPublicFileUrl).filter(Boolean)
+        : [];
+
     if (!isDbConnected()) {
       const idx = memory.listings.findIndex((l) => l._id === req.params.id);
       if (idx === -1) {
         return res.status(404).json({ success: false, message: "Listing not found" });
       }
       const existing = memory.listings[idx];
-      if (existing.owner.toString() !== req.user._id.toString()) {
+      if (String(existing.owner) !== String(req.user._id)) {
         return res.status(403).json({
           success: false,
           message: "Not authorized to update this listing",
         });
       }
 
-      const updateData = { ...req.body };
-      if (typeof req.body.location === "string") {
-        updateData.location = JSON.parse(req.body.location);
-      }
-      if (typeof req.body.amenities === "string") {
-        updateData.amenities = JSON.parse(req.body.amenities);
-      }
-      if (updateData.rent !== undefined) updateData.rent = Number(updateData.rent);
-      if (updateData.deposit !== undefined) updateData.deposit = Number(updateData.deposit);
-
-      if (req.files && req.files.length > 0) {
-        const newPhotos = req.files.map(toPublicFileUrl);
-        updateData.photos = [...(existing.photos || []), ...newPhotos];
-      }
-
       const updated = {
         ...existing,
-        ...updateData,
-        location: updateData.location ? { ...existing.location, ...updateData.location } : existing.location,
+        ...parsed.data,
+        location: parsed.data.location
+          ? { ...existing.location, ...parsed.data.location }
+          : existing.location,
+        photos:
+          newPhotos.length > 0
+            ? [...(existing.photos || []), ...newPhotos].slice(0, 8)
+            : existing.photos,
         status: "pending",
         rejectionReason: undefined,
         updatedAt: new Date().toISOString(),
@@ -349,63 +364,57 @@ const updateListing = async (req, res) => {
     let listing = await Listing.findById(req.params.id);
 
     if (!listing) {
-      return res.status(404).json({
-        success: false,
-        message: "Listing not found",
-      });
+      return res.status(404).json({ success: false, message: "Listing not found" });
     }
 
-    if (listing.owner.toString() !== req.user._id.toString()) {
+    if (String(listing.owner) !== String(req.user._id)) {
       return res.status(403).json({
         success: false,
         message: "Not authorized to update this listing",
       });
     }
 
-    const updateData = { ...req.body };
+    const updateData = {
+      ...parsed.data,
+      status: "pending",
+      rejectionReason: undefined,
+    };
 
-    if (typeof req.body.location === "string") {
-      updateData.location = JSON.parse(req.body.location);
+    if (newPhotos.length > 0) {
+      updateData.photos = [...(listing.photos || []), ...newPhotos].slice(0, 8);
     }
-
-    if (typeof req.body.amenities === "string") {
-      updateData.amenities = JSON.parse(req.body.amenities);
-    }
-
-    if (req.files && req.files.length > 0) {
-      const newPhotos = req.files.map(toPublicFileUrl);
-      updateData.photos = [...(listing.photos || []), ...newPhotos];
-    }
-
-    updateData.status = "pending";
 
     listing = await Listing.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true,
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Listing updated and resubmitted for review",
       data: { listing },
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("[Listings] update error:", error.message);
+    return res.status(500).json({
       success: false,
       message: "Failed to update listing",
-      error: error.message,
     });
   }
 };
 
 const toggleAvailability = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(404).json({ success: false, message: "Listing not found" });
+    }
+
     if (!isDbConnected()) {
       const listing = memory.listings.find((l) => l._id === req.params.id);
       if (!listing) {
         return res.status(404).json({ success: false, message: "Listing not found" });
       }
-      if (listing.owner.toString() !== req.user._id.toString()) {
+      if (String(listing.owner) !== String(req.user._id)) {
         return res.status(403).json({
           success: false,
           message: "Not authorized to modify this listing",
@@ -423,13 +432,10 @@ const toggleAvailability = async (req, res) => {
     const listing = await Listing.findById(req.params.id);
 
     if (!listing) {
-      return res.status(404).json({
-        success: false,
-        message: "Listing not found",
-      });
+      return res.status(404).json({ success: false, message: "Listing not found" });
     }
 
-    if (listing.owner.toString() !== req.user._id.toString()) {
+    if (String(listing.owner) !== String(req.user._id)) {
       return res.status(403).json({
         success: false,
         message: "Not authorized to modify this listing",
@@ -439,29 +445,33 @@ const toggleAvailability = async (req, res) => {
     listing.isAvailable = !listing.isAvailable;
     await listing.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: `Listing marked as ${listing.isAvailable ? "available" : "unavailable"}`,
       data: { listing },
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("[Listings] toggleAvailability error:", error.message);
+    return res.status(500).json({
       success: false,
       message: "Failed to toggle availability",
-      error: error.message,
     });
   }
 };
 
 const deleteListing = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(404).json({ success: false, message: "Listing not found" });
+    }
+
     if (!isDbConnected()) {
       const idx = memory.listings.findIndex((l) => l._id === req.params.id);
       if (idx === -1) {
         return res.status(404).json({ success: false, message: "Listing not found" });
       }
       const listing = memory.listings[idx];
-      if (listing.owner.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+      if (String(listing.owner) !== String(req.user._id) && req.user.role !== "admin") {
         return res.status(403).json({
           success: false,
           message: "Not authorized to delete this listing",
@@ -482,16 +492,10 @@ const deleteListing = async (req, res) => {
     const listing = await Listing.findById(req.params.id);
 
     if (!listing) {
-      return res.status(404).json({
-        success: false,
-        message: "Listing not found",
-      });
+      return res.status(404).json({ success: false, message: "Listing not found" });
     }
 
-    if (
-      listing.owner.toString() !== req.user._id.toString() &&
-      req.user.role !== "admin"
-    ) {
+    if (String(listing.owner) !== String(req.user._id) && req.user.role !== "admin") {
       return res.status(403).json({
         success: false,
         message: "Not authorized to delete this listing",
@@ -500,23 +504,29 @@ const deleteListing = async (req, res) => {
 
     await Listing.findByIdAndDelete(req.params.id);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Listing deleted successfully",
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("[Listings] delete error:", error.message);
+    return res.status(500).json({
       success: false,
       message: "Failed to delete listing",
-      error: error.message,
     });
   }
 };
 
 const revealContact = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(404).json({ success: false, message: "Listing not found" });
+    }
+
     if (!isDbConnected()) {
-      const listing = memory.listings.find((l) => l._id === req.params.id);
+      const listing = memory.listings.find(
+        (l) => l._id === req.params.id && l.status === "approved"
+      );
       if (!listing) {
         return res.status(404).json({ success: false, message: "Listing not found" });
       }
@@ -527,29 +537,26 @@ const revealContact = async (req, res) => {
         data: {
           contact: {
             name: owner?.name || "Property Owner",
-            phone: owner?.phone || "+977-9851123456",
-            email: owner?.email || "owner@rentme.com",
+            phone: owner?.phone || "",
+            email: owner?.email || "",
           },
         },
       });
     }
 
-    const listing = await Listing.findById(req.params.id).populate(
-      "owner",
-      "name phone email"
-    );
+    const listing = await Listing.findOne({
+      _id: req.params.id,
+      status: "approved",
+    }).populate("owner", "name phone email");
 
     if (!listing) {
-      return res.status(404).json({
-        success: false,
-        message: "Listing not found",
-      });
+      return res.status(404).json({ success: false, message: "Listing not found" });
     }
 
     listing.contactRequests += 1;
     await listing.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         contact: {
@@ -560,10 +567,10 @@ const revealContact = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("[Listings] revealContact error:", error.message);
+    return res.status(500).json({
       success: false,
       message: "Failed to reveal contact",
-      error: error.message,
     });
   }
 };

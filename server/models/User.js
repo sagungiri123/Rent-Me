@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const { BCRYPT_ROUNDS, signAuthToken } = require("../config/security");
 
 const userSchema = new mongoose.Schema(
   {
@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      minlength: [6, "Password must be at least 6 characters"],
+      minlength: [8, "Password must be at least 8 characters"],
       select: false,
     },
     role: {
@@ -60,6 +60,7 @@ const userSchema = new mongoose.Schema(
     ],
     googleId: {
       type: String,
+      select: false,
     },
     isSuspended: {
       type: Boolean,
@@ -72,27 +73,25 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  const salt = await bcrypt.genSalt(12);
+  if (!this.isModified("password") || !this.password) return next();
+  const salt = await bcrypt.genSalt(BCRYPT_ROUNDS);
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.password) return false;
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
 userSchema.methods.generateToken = function () {
-  return jwt.sign(
-    { id: this._id, role: this.role },
-    process.env.JWT_SECRET || "rentme-kathmandu-valley-secret-key",
-    { expiresIn: process.env.JWT_EXPIRE || "7d" }
-  );
+  return signAuthToken(this);
 };
 
 userSchema.methods.toJSON = function () {
   const user = this.toObject();
   delete user.password;
+  delete user.googleId;
   delete user.__v;
   return user;
 };

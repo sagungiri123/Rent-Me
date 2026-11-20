@@ -9,13 +9,6 @@ interface AuthViewProps {
   onNotify: (msg: string, tone?: "success" | "error") => void;
 }
 
-const DEMO_ACCOUNTS = [
-  { label: "Student", email: "student@rentme.com", password: "student123" },
-  { label: "Verified Owner", email: "owner@rentme.com", password: "owner123" },
-  { label: "Pending Owner", email: "bikram.owner@rentme.com", password: "owner123" },
-  { label: "Admin", email: "admin@rentme.com", password: "admin123" },
-];
-
 export function AuthView({ mode, onSwitchMode, onSuccess, onNotify }: AuthViewProps) {
   const { login, register } = useAuth();
 
@@ -182,6 +175,7 @@ export function AuthView({ mode, onSwitchMode, onSuccess, onNotify }: AuthViewPr
                 id="auth-email"
                 type="email"
                 required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
@@ -197,10 +191,16 @@ export function AuthView({ mode, onSwitchMode, onSuccess, onNotify }: AuthViewPr
                 id="auth-password"
                 type="password"
                 required
-                minLength={6}
+                minLength={8}
+                maxLength={128}
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minimum 6 characters"
+                placeholder={
+                  mode === "register"
+                    ? "At least 8 characters with letters and numbers"
+                    : "Enter your password"
+                }
                 className="w-full h-11 px-3.5 text-sm bg-[#FAF9F6] border border-[#DDD9D0] rounded-lg text-[#1C1F22]"
               />
             </div>
@@ -253,28 +253,6 @@ export function AuthView({ mode, onSwitchMode, onSuccess, onNotify }: AuthViewPr
                   : "Create Account"}
             </button>
           </form>
-
-          {mode === "login" && (
-            <div className="pt-5 border-t border-[#EFECE6] space-y-2.5">
-              <p className="text-xs font-medium text-[#5A5E63]">Quick Demo Accounts (click to fill)</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {DEMO_ACCOUNTS.map((acct) => (
-                  <button
-                    key={acct.email}
-                    type="button"
-                    onClick={() => {
-                      setEmail(acct.email);
-                      setPassword(acct.password);
-                      setError(null);
-                    }}
-                    className="px-2.5 py-2 text-xs font-medium text-[#1C1F22] bg-[#FAF9F6] hover:bg-[#F2F0EB] border border-[#E6E3DC] rounded-lg transition-colors whitespace-nowrap truncate cursor-pointer"
-                  >
-                    {acct.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
