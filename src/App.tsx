@@ -70,6 +70,7 @@ function RentMeAppShell() {
 
   const listingMatch = path.match(/^\/listings\/([^/]+)$/);
   const activeListingId = listingMatch ? decodeURIComponent(listingMatch[1]) : null;
+  const isAuthRoute = path === "/login" || path === "/register";
 
   const renderMain = () => {
     if (activeListingId) {
@@ -83,7 +84,7 @@ function RentMeAppShell() {
       );
     }
 
-    if (path === "/login" || path === "/register") {
+    if (isAuthRoute) {
       return (
         <AuthView
           mode={path === "/register" ? "register" : "login"}
@@ -187,7 +188,11 @@ function RentMeAppShell() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-[#1C1F22]">
+    <div
+      className={`min-h-screen flex flex-col ${
+        isAuthRoute ? "bg-[#2B3445] text-white" : "bg-[#FFFFFF] text-[#1A1A1A]"
+      }`}
+    >
       <Navbar
         currentPath={path}
         onNavigate={navigate}
@@ -197,47 +202,63 @@ function RentMeAppShell() {
       <main className="flex-1">{renderMain()}</main>
 
       {/* Quiet Editorial Footer */}
-      <footer className="border-t border-[#E6E3DC] bg-[#F5F3EE]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-          <div className="space-y-1">
-            <p className="font-display text-lg font-bold text-[#1C1F22]">RentMe</p>
-            <p className="text-xs text-[#5A5E63]">
+      <footer
+        className={
+          isAuthRoute
+            ? "border-t border-[#3B465A] bg-[#242C3B]"
+            : "border-t border-[#EAE6E0] bg-[#F7F5F2]"
+        }
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div className="space-y-1.5">
+            <p
+              className={`font-display text-xl font-medium ${
+                isAuthRoute ? "text-white" : "text-[#1A1A1A]"
+              }`}
+            >
+              Rent<em className="italic font-normal text-[#E86A4D]">Me</em>
+            </p>
+            <p className={`text-xs ${isAuthRoute ? "text-[#B4BECE]" : "text-[#666666]"}`}>
               Direct student housing across Kathmandu, Lalitpur, and Bhaktapur.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-6 text-xs font-medium text-[#5A5E63]">
+          <div
+            className={`flex flex-wrap items-center gap-6 text-xs font-medium ${
+              isAuthRoute ? "text-[#C5CDD9]" : "text-[#666666]"
+            }`}
+          >
             <button
               type="button"
               onClick={() => navigate("/")}
-              className="hover:text-[#1C1F22] cursor-pointer"
+              className={`${isAuthRoute ? "hover:text-white" : "hover:text-[#E86A4D]"} transition-colors cursor-pointer`}
             >
               Explore Rooms
             </button>
             <button
               type="button"
               onClick={() => handleSelectDistrict("Kathmandu")}
-              className="hover:text-[#1C1F22] cursor-pointer"
+              className={`${isAuthRoute ? "hover:text-white" : "hover:text-[#E86A4D]"} transition-colors cursor-pointer`}
             >
               Kathmandu
             </button>
             <button
               type="button"
               onClick={() => handleSelectDistrict("Lalitpur")}
-              className="hover:text-[#1C1F22] cursor-pointer"
+              className={`${isAuthRoute ? "hover:text-white" : "hover:text-[#E86A4D]"} transition-colors cursor-pointer`}
             >
               Lalitpur
             </button>
             <button
               type="button"
               onClick={() => handleSelectDistrict("Bhaktapur")}
-              className="hover:text-[#1C1F22] cursor-pointer"
+              className={`${isAuthRoute ? "hover:text-white" : "hover:text-[#E86A4D]"} transition-colors cursor-pointer`}
             >
               Bhaktapur
             </button>
             <button
               type="button"
               onClick={() => navigate(user ? "/profile" : "/login")}
-              className="hover:text-[#1C1F22] cursor-pointer"
+              className={`${isAuthRoute ? "hover:text-white" : "hover:text-[#E86A4D]"} transition-colors cursor-pointer`}
             >
               {user ? "Account" : "Sign In"}
             </button>
@@ -249,10 +270,10 @@ function RentMeAppShell() {
       {toast && (
         <div
           role="status"
-          className={`fixed bottom-5 right-5 z-50 max-w-sm flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium shadow-lg ${
+          className={`fixed bottom-6 right-6 z-50 max-w-sm flex items-center gap-3 px-5 py-3.5 rounded-full border text-sm font-medium shadow-[0_18px_40px_-14px_rgba(26,26,26,0.35)] ${
             toast.tone === "error"
-              ? "bg-[#FEF2F2] text-[#9A3412] border-[#FECACA]"
-              : "bg-[#1C1F22] text-white border-[#2E3338]"
+              ? "bg-[#FEF2F2] text-[#B8452C] border-[#FECACA]"
+              : "bg-[#1C1B1A] text-white border-[#333333]"
           }`}
         >
           <span>{toast.message}</span>
@@ -273,7 +294,7 @@ function RentMeAppShell() {
 function LoadingFrame() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <div className="h-40 bg-white border border-[#E6E3DC] rounded-xl animate-pulse" />
+      <div className="h-44 bg-[#F7F5F2] border border-[#EAE6E0] rounded-2xl animate-pulse" />
     </div>
   );
 }
@@ -290,13 +311,13 @@ function RoleNotice({
   onAction: () => void;
 }) {
   return (
-    <div className="max-w-xl mx-auto px-4 py-20 text-center space-y-4">
-      <h1 className="font-display text-3xl font-semibold text-[#1C1F22]">{title}</h1>
-      <p className="text-sm text-[#5A5E63]">{description}</p>
+    <div className="max-w-xl mx-auto px-4 py-24 text-center space-y-5">
+      <h1 className="font-display text-3xl sm:text-4xl font-medium text-[#1A1A1A]">{title}</h1>
+      <p className="text-sm text-[#666666] leading-relaxed">{description}</p>
       <button
         type="button"
         onClick={onAction}
-        className="inline-flex items-center px-5 py-2.5 text-sm font-semibold text-white bg-[#264D3B] hover:bg-[#1C3B2D] rounded-lg cursor-pointer"
+        className="inline-flex items-center px-6 py-3 text-sm font-medium text-white bg-[#E86A4D] hover:bg-[#D5583B] rounded-full transition-colors shadow-[0_10px_24px_-10px_rgba(232,106,77,0.65)] cursor-pointer"
       >
         {actionLabel}
       </button>

@@ -27,16 +27,16 @@ export function RoomImage({ src, alt, className = "", aspectClass = "aspect-[4/3
   if (!isSafeImageSrc(src) || failed) {
     return (
       <div
-        className={`${aspectClass} ${className} flex flex-col items-center justify-center bg-[#EFECE6] text-[#6B6E72] px-4 text-center`}
+        className={`${aspectClass} ${className} flex flex-col items-center justify-center bg-[#F7F5F2] text-[#666666] px-4 text-center`}
       >
-        <Home className="w-7 h-7 mb-2 stroke-[1.5] text-[#264D3B]" aria-hidden="true" />
-        <span className="text-xs font-medium text-[#4A4E52] line-clamp-2 max-w-[200px]">{alt}</span>
+        <Home className="w-7 h-7 mb-2 stroke-[1.5] text-[#E86A4D]" aria-hidden="true" />
+        <span className="text-xs font-medium text-[#666666] line-clamp-2 max-w-[200px]">{alt}</span>
       </div>
     );
   }
 
   return (
-    <div className={`${aspectClass} ${className} overflow-hidden bg-[#EFECE6]`}>
+    <div className={`${aspectClass} ${className} overflow-hidden bg-[#F7F5F2]`}>
       <img
         src={src}
         alt={alt}

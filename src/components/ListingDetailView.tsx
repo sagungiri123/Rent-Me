@@ -120,11 +120,11 @@ export function ListingDetailView({
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 animate-pulse space-y-6">
-        <div className="h-5 w-32 bg-[#EFECE6] rounded" />
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          <div className="lg:col-span-7 aspect-[4/3] bg-[#EFECE6] rounded-xl" />
-          <div className="lg:col-span-5 h-96 bg-[#EFECE6] rounded-xl" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 animate-pulse space-y-8">
+        <div className="h-5 w-32 bg-[#F7F5F2] rounded-full" />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+          <div className="lg:col-span-7 aspect-[4/3] bg-[#F7F5F2] rounded-2xl" />
+          <div className="lg:col-span-5 h-96 bg-[#F7F5F2] rounded-2xl" />
         </div>
       </div>
     );
@@ -132,14 +132,14 @@ export function ListingDetailView({
 
   if (error || !listing) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-16 text-center space-y-4">
-        <h1 className="font-display text-2xl font-semibold text-[#1C1F22]">
+      <div className="max-w-3xl mx-auto px-4 py-20 text-center space-y-5">
+        <h1 className="font-display text-3xl font-medium text-[#1A1A1A]">
           {error || "Room not found"}
         </h1>
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-[#264D3B] rounded-lg cursor-pointer"
+          className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-white bg-[#E86A4D] hover:bg-[#D5583B] rounded-full transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Explore
@@ -156,270 +156,276 @@ export function ListingDetailView({
   const isSaved = savedIds.has(listing._id);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20 space-y-8">
-      <button
-        type="button"
-        onClick={onBack}
-        className="inline-flex items-center gap-2 text-sm font-medium text-[#5A5E63] hover:text-[#1C1F22] transition-colors cursor-pointer"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to all rooms
-      </button>
+    <div className="bg-[#FFFFFF]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-24 space-y-10">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium text-[#666666] hover:text-[#1A1A1A] bg-[#F7F5F2] border border-[#EAE6E0] rounded-full transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back to all rooms
+        </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-        {/* Left Column: Photo Gallery + Details */}
-        <div className="lg:col-span-7 space-y-8">
-          <div className="space-y-3">
-            <div className="rounded-xl overflow-hidden border border-[#E6E3DC]">
-              <RoomImage
-                src={photos[activePhotoIndex]}
-                alt={listing.title}
-                aspectClass="aspect-[4/3]"
-              />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
+          {/* Left Column: Photo Gallery + Editorial Details */}
+          <div className="lg:col-span-7 space-y-10">
+            <div className="space-y-4">
+              <div className="rounded-2xl overflow-hidden border border-[#EAE6E0] shadow-[0_18px_45px_-24px_rgba(26,26,26,0.16)]">
+                <RoomImage
+                  src={photos[activePhotoIndex]}
+                  alt={listing.title}
+                  aspectClass="aspect-[4/3]"
+                />
+              </div>
+
+              {photos.length > 1 && (
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                  {photos.map((photo, idx) => (
+                    <button
+                      key={`${photo}-${idx}`}
+                      type="button"
+                      onClick={() => setActivePhotoIndex(idx)}
+                      className={`rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
+                        idx === activePhotoIndex
+                          ? "border-[#E86A4D]"
+                          : "border-transparent opacity-70 hover:opacity-100"
+                      }`}
+                    >
+                      <RoomImage src={photo} alt={`${listing.title} photo ${idx + 1}`} aspectClass="aspect-[4/3]" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {photos.length > 1 && (
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-                {photos.map((photo, idx) => (
-                  <button
-                    key={`${photo}-${idx}`}
-                    type="button"
-                    onClick={() => setActivePhotoIndex(idx)}
-                    className={`rounded-lg overflow-hidden border-2 transition-colors cursor-pointer ${
-                      idx === activePhotoIndex
-                        ? "border-[#264D3B]"
-                        : "border-transparent opacity-75 hover:opacity-100"
-                    }`}
-                  >
-                    <RoomImage src={photo} alt={`${listing.title} photo ${idx + 1}`} aspectClass="aspect-[4/3]" />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+            {/* Description */}
+            <div className="bg-[#F7F5F2] border border-[#EAE6E0] rounded-2xl p-6 sm:p-8 space-y-4">
+              <h2 className="font-display text-2xl sm:text-3xl font-medium text-[#1A1A1A]">
+                About this <em className="italic font-normal text-[#E86A4D]">space</em>
+              </h2>
+              <p className="text-[15px] leading-relaxed text-[#666666] whitespace-pre-line">
+                {listing.description}
+              </p>
+            </div>
 
-          {/* Description */}
-          <div className="space-y-3 pt-4 border-t border-[#E6E3DC]">
-            <h2 className="font-display text-2xl font-semibold text-[#1C1F22]">About this space</h2>
-            <p className="text-[15px] leading-relaxed text-[#3F4347] whitespace-pre-line">
-              {listing.description}
-            </p>
-          </div>
+            {/* Amenities Grid */}
+            <div className="bg-[#FFFFFF] border border-[#EAE6E0] rounded-2xl p-6 sm:p-8 space-y-5">
+              <h2 className="font-display text-2xl font-medium text-[#1A1A1A]">
+                Included Amenities
+              </h2>
+              {listing.amenities && listing.amenities.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-3.5 gap-x-6">
+                  {listing.amenities.map((amenity) => (
+                    <div key={amenity} className="flex items-center gap-2.5 text-sm text-[#1A1A1A]">
+                      <Check className="w-4 h-4 text-[#E86A4D] shrink-0" aria-hidden="true" />
+                      <span>{AMENITY_LABELS[amenity] || amenity}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-[#666666]">No specific amenities listed by the owner.</p>
+              )}
+            </div>
 
-          {/* Amenities Grid */}
-          <div className="space-y-4 pt-6 border-t border-[#E6E3DC]">
-            <h2 className="font-display text-2xl font-semibold text-[#1C1F22]">
-              Included Amenities
-            </h2>
-            {listing.amenities && listing.amenities.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-3 gap-x-6">
-                {listing.amenities.map((amenity) => (
-                  <div key={amenity} className="flex items-center gap-2.5 text-sm text-[#2E3236]">
-                    <Check className="w-4 h-4 text-[#264D3B] shrink-0" aria-hidden="true" />
-                    <span>{AMENITY_LABELS[amenity] || amenity}</span>
+            {/* Location & College Proximity */}
+            <div className="bg-[#FFFFFF] border border-[#EAE6E0] rounded-2xl p-6 sm:p-8 space-y-5">
+              <h2 className="font-display text-2xl font-medium text-[#1A1A1A]">
+                Location & <em className="italic font-normal text-[#E86A4D]">Proximity</em>
+              </h2>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
+                <div>
+                  <dt className="text-xs text-[#666666]">District & Area</dt>
+                  <dd className="font-medium text-[#1A1A1A] mt-1">
+                    {listing.location.area}, {listing.location.district}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-[#666666]">Street Address</dt>
+                  <dd className="font-medium text-[#1A1A1A] mt-1">{listing.location.address}</dd>
+                </div>
+                {listing.location.nearbyCollege && (
+                  <div>
+                    <dt className="text-xs text-[#666666]">Nearest Campus / College</dt>
+                    <dd className="font-medium text-[#1A1A1A] mt-1">
+                      {listing.location.nearbyCollege}
+                    </dd>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-[#64686D]">No specific amenities listed by the owner.</p>
-            )}
-          </div>
-
-          {/* Location & College Proximity */}
-          <div className="space-y-3 pt-6 border-t border-[#E6E3DC]">
-            <h2 className="font-display text-2xl font-semibold text-[#1C1F22]">
-              Location & Proximity
-            </h2>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-              <div>
-                <dt className="text-xs text-[#64686D]">District & Area</dt>
-                <dd className="font-medium text-[#1C1F22] mt-0.5">
-                  {listing.location.area}, {listing.location.district}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-[#64686D]">Street Address</dt>
-                <dd className="font-medium text-[#1C1F22] mt-0.5">{listing.location.address}</dd>
-              </div>
-              {listing.location.nearbyCollege && (
-                <div>
-                  <dt className="text-xs text-[#64686D]">Nearest Campus / College</dt>
-                  <dd className="font-medium text-[#1C1F22] mt-0.5">
-                    {listing.location.nearbyCollege}
-                  </dd>
-                </div>
-              )}
-              {listing.location.distanceToCollege !== undefined && (
-                <div>
-                  <dt className="text-xs text-[#64686D]">Distance to College</dt>
-                  <dd className="font-mono font-medium text-[#1C1F22] mt-0.5 tabular-nums">
-                    {listing.location.distanceToCollege} km
-                  </dd>
-                </div>
-              )}
-            </dl>
-          </div>
-
-          {/* House Rules */}
-          {listing.rules && (
-            <div className="space-y-2 pt-6 border-t border-[#E6E3DC]">
-              <h2 className="font-display text-2xl font-semibold text-[#1C1F22]">House Rules</h2>
-              <p className="text-sm leading-relaxed text-[#4A4E52]">{listing.rules}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: Contiguous Sticky Inquiry Module */}
-        <aside className="lg:col-span-5 lg:sticky lg:top-24 bg-white border border-[#E6E3DC] rounded-xl p-6 space-y-6">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-[#64686D]">
-              <span className="font-semibold text-[#264D3B]">
-                {ROOM_TYPE_LABELS[listing.roomType]}
-              </span>
-              <span aria-hidden="true">·</span>
-              <span>
-                {listing.location.area}, {listing.location.district}
-              </span>
-              {listing.status !== "approved" && (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <span className="font-medium text-[#B4652A]">Status: {listing.status}</span>
-                </>
-              )}
+                )}
+                {listing.location.distanceToCollege !== undefined && (
+                  <div>
+                    <dt className="text-xs text-[#666666]">Distance to College</dt>
+                    <dd className="font-mono font-medium text-[#1A1A1A] mt-1 tabular-nums">
+                      {listing.location.distanceToCollege} km
+                    </dd>
+                  </div>
+                )}
+              </dl>
             </div>
 
-            <h1 className="font-display text-2xl sm:text-3xl font-semibold text-[#1C1F22] leading-tight">
-              {listing.title}
-            </h1>
-          </div>
-
-          {/* Pricing Block */}
-          <div className="py-4 border-y border-[#EFECE6] flex items-baseline justify-between gap-4">
-            <div>
-              <span className="font-mono text-2xl font-medium text-[#1C1F22] tabular-nums">
-                {formatNPR(listing.rent)}
-              </span>
-              <span className="text-sm text-[#64686D]"> / month</span>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-[#64686D]">Security Deposit</p>
-              <p className="font-mono text-sm font-medium text-[#1C1F22] tabular-nums">
-                {formatNPR(listing.deposit)}
-              </p>
-            </div>
-          </div>
-
-          {/* Key Metadata Rows */}
-          <div className="space-y-2.5 text-sm text-[#3F4347]">
-            <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-2 text-[#5A5E63]">
-                <Calendar className="w-4 h-4" />
-                Available From
-              </span>
-              <span className="font-medium text-[#1C1F22]">
-                {formatShortDate(listing.availableFrom)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-2 text-[#5A5E63]">
-                <MapPin className="w-4 h-4" />
-                Availability
-              </span>
-              <span
-                className={`font-medium ${
-                  listing.isAvailable ? "text-[#264D3B]" : "text-[#9A3412]"
-                }`}
-              >
-                {listing.isAvailable ? "Available Now" : "Currently Occupied"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-2 text-[#5A5E63]">
-                <Eye className="w-4 h-4" />
-                Listing Views
-              </span>
-              <span className="font-mono tabular-nums text-[#1C1F22]">{listing.views || 0}</span>
-            </div>
-          </div>
-
-          {/* Owner Info */}
-          <div className="pt-4 border-t border-[#EFECE6] flex items-center gap-3.5">
-            {ownerObj.avatar ? (
-              <img
-                src={ownerObj.avatar}
-                alt={ownerObj.name}
-                referrerPolicy="no-referrer"
-                className="w-11 h-11 rounded-full object-cover border border-[#E6E3DC]"
-              />
-            ) : (
-              <div className="w-11 h-11 rounded-full bg-[#F2F0EB] border border-[#E6E3DC] flex items-center justify-center text-[#264D3B] font-semibold">
-                <UserIcon className="w-5 h-5" />
+            {/* House Rules */}
+            {listing.rules && (
+              <div className="bg-[#F7F5F2] border border-[#EAE6E0] rounded-2xl p-6 sm:p-8 space-y-3">
+                <h2 className="font-display text-2xl font-medium text-[#1A1A1A]">House Rules</h2>
+                <p className="text-sm leading-relaxed text-[#666666]">{listing.rules}</p>
               </div>
             )}
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-[#1C1F22] truncate">{ownerObj.name}</p>
-              <p className="inline-flex items-center gap-1 text-xs text-[#264D3B]">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                Direct Verified Owner · Zero Broker Fee
-              </p>
-            </div>
           </div>
 
-          {/* Revealed Contact Panel */}
-          {contact ? (
-            <div className="p-4 bg-[#F4F7F5] border border-[#C8DBD0] rounded-xl space-y-2.5">
-              <p className="text-xs font-semibold text-[#264D3B]">Owner Contact Unlocked</p>
-              <p className="text-sm font-semibold text-[#1C1F22]">{contact.name}</p>
-              {contact.phone && (
-                <a
-                  href={`tel:${contact.phone}`}
-                  className="flex items-center gap-2 text-sm font-mono text-[#1C1F22] hover:text-[#264D3B]"
-                >
-                  <Phone className="w-4 h-4 text-[#264D3B]" />
-                  {contact.phone}
-                </a>
-              )}
-              {contact.email && (
-                <a
-                  href={`mailto:${contact.email}`}
-                  className="flex items-center gap-2 text-sm text-[#1C1F22] hover:text-[#264D3B] break-all"
-                >
-                  <Mail className="w-4 h-4 text-[#264D3B]" />
-                  {contact.email}
-                </a>
-              )}
-            </div>
-          ) : (
+          {/* Right Column: Elevated Pure-White Sticky Inquiry Widget */}
+          <aside className="lg:col-span-5 lg:sticky lg:top-24 bg-[#FFFFFF] border border-[#EAE6E0] rounded-2xl p-7 sm:p-8 shadow-[0_24px_60px_-24px_rgba(26,26,26,0.14)] space-y-6">
             <div className="space-y-3">
-              <button
-                type="button"
-                disabled={revealing}
-                onClick={handleRevealContact}
-                className="w-full py-3 px-4 text-sm font-semibold text-white bg-[#264D3B] hover:bg-[#1C3B2D] rounded-lg transition-colors disabled:opacity-60 cursor-pointer"
-              >
-                {revealing
-                  ? "Revealing Contact..."
-                  : user?.role === "student"
-                    ? "Reveal Owner Contact"
-                    : user
-                      ? "Student Account Required to Contact"
-                      : "Sign In as Student to Reveal Contact"}
-              </button>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-[#666666]">
+                <span className="font-medium text-[#E86A4D]">
+                  {ROOM_TYPE_LABELS[listing.roomType]}
+                </span>
+                <span aria-hidden="true">·</span>
+                <span>
+                  {listing.location.area}, {listing.location.district}
+                </span>
+                {listing.status !== "approved" && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="font-medium text-[#B8452C]">Status: {listing.status}</span>
+                  </>
+                )}
+              </div>
 
-              {(!user || user.role === "student") && (
+              <h1 className="font-display text-3xl sm:text-[2rem] font-medium text-[#1A1A1A] leading-[1.15] tracking-[-0.015em]">
+                {listing.title}
+              </h1>
+            </div>
+
+            {/* Pricing Block */}
+            <div className="py-5 border-y border-[#F2EFEA] flex items-baseline justify-between gap-4">
+              <div>
+                <span className="font-mono text-2xl font-medium text-[#1A1A1A] tabular-nums">
+                  {formatNPR(listing.rent)}
+                </span>
+                <span className="text-sm text-[#666666]"> / month</span>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-[#666666]">Security Deposit</p>
+                <p className="font-mono text-sm font-medium text-[#1A1A1A] tabular-nums mt-0.5">
+                  {formatNPR(listing.deposit)}
+                </p>
+              </div>
+            </div>
+
+            {/* Key Metadata Rows */}
+            <div className="space-y-3 text-sm text-[#666666]">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-[#9A958E]" />
+                  Available From
+                </span>
+                <span className="font-medium text-[#1A1A1A]">
+                  {formatShortDate(listing.availableFrom)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-[#9A958E]" />
+                  Availability
+                </span>
+                <span
+                  className={`font-medium ${
+                    listing.isAvailable ? "text-[#1A1A1A]" : "text-[#B8452C]"
+                  }`}
+                >
+                  {listing.isAvailable ? "Available Now" : "Currently Occupied"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-[#9A958E]" />
+                  Listing Views
+                </span>
+                <span className="font-mono tabular-nums text-[#1A1A1A]">{listing.views || 0}</span>
+              </div>
+            </div>
+
+            {/* Owner Info */}
+            <div className="pt-5 border-t border-[#F2EFEA] flex items-center gap-3.5">
+              {ownerObj.avatar ? (
+                <img
+                  src={ownerObj.avatar}
+                  alt={ownerObj.name}
+                  referrerPolicy="no-referrer"
+                  className="w-11 h-11 rounded-full object-cover border border-[#EAE6E0]"
+                />
+              ) : (
+                <div className="w-11 h-11 rounded-full bg-[#F7F5F2] border border-[#EAE6E0] flex items-center justify-center text-[#E86A4D] font-semibold">
+                  <UserIcon className="w-5 h-5" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[#1A1A1A] truncate">{ownerObj.name}</p>
+                <p className="inline-flex items-center gap-1.5 text-xs text-[#666666] mt-0.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#E86A4D]" />
+                  Direct Verified Owner · Zero Broker Fee
+                </p>
+              </div>
+            </div>
+
+            {/* Revealed Contact Panel */}
+            {contact ? (
+              <div className="p-5 bg-[#F7F5F2] border border-[#EAE6E0] rounded-2xl space-y-2.5">
+                <p className="text-xs font-medium uppercase tracking-wider text-[#E86A4D]">
+                  Owner Contact Unlocked
+                </p>
+                <p className="text-sm font-semibold text-[#1A1A1A]">{contact.name}</p>
+                {contact.phone && (
+                  <a
+                    href={`tel:${contact.phone}`}
+                    className="flex items-center gap-2.5 text-sm font-mono text-[#1A1A1A] hover:text-[#E86A4D] transition-colors"
+                  >
+                    <Phone className="w-4 h-4 text-[#E86A4D]" />
+                    {contact.phone}
+                  </a>
+                )}
+                {contact.email && (
+                  <a
+                    href={`mailto:${contact.email}`}
+                    className="flex items-center gap-2.5 text-sm text-[#1A1A1A] hover:text-[#E86A4D] transition-colors break-all"
+                  >
+                    <Mail className="w-4 h-4 text-[#E86A4D]" />
+                    {contact.email}
+                  </a>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3 pt-1">
                 <button
                   type="button"
-                  disabled={saving}
-                  onClick={handleToggleSave}
-                  className="w-full py-2.5 px-4 inline-flex items-center justify-center gap-2 text-sm font-medium text-[#1C1F22] bg-[#FAF9F6] hover:bg-[#F2F0EB] border border-[#DDD9D0] rounded-lg transition-colors cursor-pointer"
+                  disabled={revealing}
+                  onClick={handleRevealContact}
+                  className="w-full py-3.5 px-6 text-sm font-medium text-white bg-[#E86A4D] hover:bg-[#D5583B] rounded-full transition-colors shadow-[0_10px_24px_-10px_rgba(232,106,77,0.7)] disabled:opacity-60 cursor-pointer"
                 >
-                  <Bookmark className={`w-4 h-4 ${isSaved ? "fill-[#264D3B] text-[#264D3B]" : ""}`} />
-                  {isSaved ? "Saved in Shortlist" : "Save Room for Later"}
+                  {revealing
+                    ? "Revealing Contact..."
+                    : user?.role === "student"
+                      ? "Reveal Owner Contact"
+                      : user
+                        ? "Student Account Required to Contact"
+                        : "Sign In as Student to Reveal Contact"}
                 </button>
-              )}
-            </div>
-          )}
-        </aside>
+
+                {(!user || user.role === "student") && (
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={handleToggleSave}
+                    className="w-full py-3 px-6 inline-flex items-center justify-center gap-2 text-sm font-medium text-[#1A1A1A] bg-[#F7F5F2] hover:bg-[#EFECE6] border border-[#EAE6E0] rounded-full transition-colors cursor-pointer"
+                  >
+                    <Bookmark className={`w-4 h-4 ${isSaved ? "fill-[#E86A4D] text-[#E86A4D]" : ""}`} />
+                    {isSaved ? "Saved in Shortlist" : "Save Room for Later"}
+                  </button>
+                )}
+              </div>
+            )}
+          </aside>
+        </div>
       </div>
     </div>
   );

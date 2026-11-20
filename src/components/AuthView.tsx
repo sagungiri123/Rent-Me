@@ -51,208 +51,225 @@ export function AuthView({ mode, onSwitchMode, onSuccess, onNotify }: AuthViewPr
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="grid grid-cols-1 lg:grid-cols-12 bg-white border border-[#E6E3DC] rounded-xl overflow-hidden items-stretch">
-        {/* Left Editorial Photo */}
-        <div className="hidden lg:block lg:col-span-5 relative min-h-[520px]">
-          <img
-            src={VALLEY_ASSETS.rooftopSunset}
-            alt="Sunset over Kathmandu Valley from a rooftop terrace"
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-8 text-white">
-            <p className="text-xs font-medium text-white/80 mb-2">Kathmandu Valley Housing</p>
-            <h2 className="font-display text-2xl font-semibold leading-snug">
-              Verified landlords and direct student inquiries—no brokers.
-            </h2>
-          </div>
-        </div>
-
-        {/* Right Form */}
-        <div className="lg:col-span-7 p-6 sm:p-10 space-y-6">
-          <div className="space-y-2">
-            <h1 className="font-display text-3xl font-semibold text-[#1C1F22]">
-              {mode === "login" ? "Sign in to RentMe" : "Create your RentMe account"}
-            </h1>
-            <p className="text-sm text-[#5A5E63]">
-              {mode === "login"
-                ? "Access saved rooms, reveal owner phone numbers, or manage your listings."
-                : "Join as a student searching for rooms or as a verified property owner."}
-            </p>
+    <div className="bg-[#2B3445] min-h-[calc(100vh-4.5rem)] flex items-center py-14 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 bg-[#1C1B1A] border border-[#333333] rounded-2xl overflow-hidden items-stretch shadow-[0_32px_70px_-20px_rgba(0,0,0,0.55)]">
+          {/* Left Editorial Photo */}
+          <div className="hidden lg:block lg:col-span-5 relative min-h-[540px] border-r border-[#333333]">
+            <img
+              src={VALLEY_ASSETS.rooftopSunset}
+              alt="Sunset over Kathmandu Valley from a rooftop terrace"
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#1C1B1A] via-[#1C1B1A]/35 to-transparent flex flex-col justify-end p-8 text-white space-y-2.5">
+              <p className="text-xs font-medium tracking-[0.14em] uppercase text-[#E86A4D]">
+                Kathmandu Valley Housing
+              </p>
+              <h2 className="font-display text-2xl sm:text-[1.75rem] font-medium leading-snug">
+                Verified landlords and direct student inquiries—{" "}
+                <em className="italic font-normal text-[#E86A4D]">no brokers.</em>
+              </h2>
+            </div>
           </div>
 
-          {/* Mode Toggle */}
-          <div className="flex items-center gap-1 p-1 bg-[#F2F0EB] rounded-lg w-fit">
-            <button
-              type="button"
-              onClick={() => {
-                setError(null);
-                onSwitchMode("login");
-              }}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
-                mode === "login" ? "bg-white text-[#1C1F22] shadow-xs" : "text-[#5A5E63]"
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setError(null);
-                onSwitchMode("register");
-              }}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
-                mode === "register" ? "bg-white text-[#1C1F22] shadow-xs" : "text-[#5A5E63]"
-              }`}
-            >
-              Register
-            </button>
-          </div>
-
-          {error && (
-            <div className="p-3.5 text-sm text-[#9A3412] bg-[#FEF2F2] border border-[#FECACA] rounded-lg">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === "register" && (
-              <>
-                <div>
-                  <label className="block text-xs font-medium text-[#5A5E63] mb-1.5">
-                    Account Role
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setRole("student")}
-                      className={`py-2.5 px-3 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${
-                        role === "student"
-                          ? "bg-[#264D3B] text-white border-[#264D3B]"
-                          : "bg-[#FAF9F6] text-[#1C1F22] border-[#DDD9D0]"
-                      }`}
-                    >
-                      Student
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRole("owner")}
-                      className={`py-2.5 px-3 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${
-                        role === "owner"
-                          ? "bg-[#264D3B] text-white border-[#264D3B]"
-                          : "bg-[#FAF9F6] text-[#1C1F22] border-[#DDD9D0]"
-                      }`}
-                    >
-                      Property Owner
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="auth-name" className="block text-xs font-medium text-[#5A5E63] mb-1.5">
-                    Full Name
-                  </label>
-                  <input
-                    id="auth-name"
-                    type="text"
-                    required
-                    maxLength={50}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Sita Gurung"
-                    className="w-full h-11 px-3.5 text-sm bg-[#FAF9F6] border border-[#DDD9D0] rounded-lg text-[#1C1F22]"
-                  />
-                </div>
-              </>
-            )}
-
-            <div>
-              <label htmlFor="auth-email" className="block text-xs font-medium text-[#5A5E63] mb-1.5">
-                Email Address
-              </label>
-              <input
-                id="auth-email"
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full h-11 px-3.5 text-sm bg-[#FAF9F6] border border-[#DDD9D0] rounded-lg text-[#1C1F22]"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="auth-password" className="block text-xs font-medium text-[#5A5E63] mb-1.5">
-                Password
-              </label>
-              <input
-                id="auth-password"
-                type="password"
-                required
-                minLength={8}
-                maxLength={128}
-                autoComplete={mode === "login" ? "current-password" : "new-password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={
-                  mode === "register"
-                    ? "At least 8 characters with letters and numbers"
-                    : "Enter your password"
-                }
-                className="w-full h-11 px-3.5 text-sm bg-[#FAF9F6] border border-[#DDD9D0] rounded-lg text-[#1C1F22]"
-              />
-            </div>
-
-            {mode === "register" && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="auth-phone" className="block text-xs font-medium text-[#5A5E63] mb-1.5">
-                    Phone Number
-                  </label>
-                  <input
-                    id="auth-phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+977-98XXXXXXXX"
-                    className="w-full h-11 px-3.5 text-sm bg-[#FAF9F6] border border-[#DDD9D0] rounded-lg text-[#1C1F22]"
-                  />
-                </div>
-
-                {role === "student" && (
-                  <div>
-                    <label htmlFor="auth-college" className="block text-xs font-medium text-[#5A5E63] mb-1.5">
-                      College / Campus
-                    </label>
-                    <input
-                      id="auth-college"
-                      type="text"
-                      value={collegeName}
-                      onChange={(e) => setCollegeName(e.target.value)}
-                      placeholder="e.g. Pulchowk Campus"
-                      className="w-full h-11 px-3.5 text-sm bg-[#FAF9F6] border border-[#DDD9D0] rounded-lg text-[#1C1F22]"
-                    />
-                  </div>
+          {/* Right Matte Charcoal Form */}
+          <div className="lg:col-span-7 p-7 sm:p-10 lg:p-12 space-y-7">
+            <div className="space-y-2.5">
+              <h1 className="font-display text-3xl sm:text-4xl font-medium tracking-[-0.02em] text-white">
+                {mode === "login" ? (
+                  <>
+                    Sign in to <em className="italic font-normal text-[#E86A4D]">RentMe</em>
+                  </>
+                ) : (
+                  <>
+                    Create your <em className="italic font-normal text-[#E86A4D]">RentMe</em> account
+                  </>
                 )}
+              </h1>
+              <p className="text-sm text-[#A8A49E] leading-relaxed">
+                {mode === "login"
+                  ? "Access saved rooms, reveal owner phone numbers, or manage your listings."
+                  : "Join as a student searching for rooms or as a verified property owner."}
+              </p>
+            </div>
+
+            {/* Pill Mode Toggle */}
+            <div className="flex items-center gap-1 p-1 bg-[#252423] border border-[#333333] rounded-full w-fit">
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  onSwitchMode("login");
+                }}
+                className={`px-5 py-1.5 text-xs font-medium rounded-full transition-colors cursor-pointer ${
+                  mode === "login"
+                    ? "bg-[#E86A4D] text-white"
+                    : "text-[#A8A49E] hover:text-white"
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  onSwitchMode("register");
+                }}
+                className={`px-5 py-1.5 text-xs font-medium rounded-full transition-colors cursor-pointer ${
+                  mode === "register"
+                    ? "bg-[#E86A4D] text-white"
+                    : "text-[#A8A49E] hover:text-white"
+                }`}
+              >
+                Register
+              </button>
+            </div>
+
+            {error && (
+              <div className="p-4 text-sm text-[#FCA5A5] bg-[#3A1E1E] border border-[#6E3030] rounded-xl">
+                {error}
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full py-3 px-4 text-sm font-semibold text-white bg-[#264D3B] hover:bg-[#1C3B2D] rounded-lg transition-colors disabled:opacity-60 cursor-pointer"
-            >
-              {submitting
-                ? mode === "login"
-                  ? "Signing in..."
-                  : "Creating account..."
-                : mode === "login"
-                  ? "Sign In"
-                  : "Create Account"}
-            </button>
-          </form>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {mode === "register" && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-[#A8A49E] mb-2">
+                      Account Role
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setRole("student")}
+                        className={`py-2.5 px-4 text-sm font-medium rounded-full border transition-colors cursor-pointer ${
+                          role === "student"
+                            ? "bg-[#E86A4D] text-white border-[#E86A4D]"
+                            : "bg-[#252423] text-[#D8D4CE] border-[#333333] hover:border-[#4A4845]"
+                        }`}
+                      >
+                        Student
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRole("owner")}
+                        className={`py-2.5 px-4 text-sm font-medium rounded-full border transition-colors cursor-pointer ${
+                          role === "owner"
+                            ? "bg-[#E86A4D] text-white border-[#E86A4D]"
+                            : "bg-[#252423] text-[#D8D4CE] border-[#333333] hover:border-[#4A4845]"
+                        }`}
+                      >
+                        Property Owner
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="auth-name" className="block text-xs font-medium text-[#A8A49E] mb-2">
+                      Full Name
+                    </label>
+                    <input
+                      id="auth-name"
+                      type="text"
+                      required
+                      maxLength={50}
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. Sita Gurung"
+                      className="w-full h-11 px-4 text-sm bg-[#252423] border border-[#333333] rounded-xl text-white placeholder:text-[#78746E] focus:border-[#E86A4D]"
+                    />
+                  </div>
+                </>
+              )}
+
+              <div>
+                <label htmlFor="auth-email" className="block text-xs font-medium text-[#A8A49E] mb-2">
+                  Email Address
+                </label>
+                <input
+                  id="auth-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full h-11 px-4 text-sm bg-[#252423] border border-[#333333] rounded-xl text-white placeholder:text-[#78746E] focus:border-[#E86A4D]"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="auth-password" className="block text-xs font-medium text-[#A8A49E] mb-2">
+                  Password
+                </label>
+                <input
+                  id="auth-password"
+                  type="password"
+                  required
+                  minLength={8}
+                  maxLength={128}
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={
+                    mode === "register"
+                      ? "At least 8 characters with letters and numbers"
+                      : "Enter your password"
+                  }
+                  className="w-full h-11 px-4 text-sm bg-[#252423] border border-[#333333] rounded-xl text-white placeholder:text-[#78746E] focus:border-[#E86A4D]"
+                />
+              </div>
+
+              {mode === "register" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="auth-phone" className="block text-xs font-medium text-[#A8A49E] mb-2">
+                      Phone Number
+                    </label>
+                    <input
+                      id="auth-phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+977-98XXXXXXXX"
+                      className="w-full h-11 px-4 text-sm bg-[#252423] border border-[#333333] rounded-xl text-white placeholder:text-[#78746E] focus:border-[#E86A4D]"
+                    />
+                  </div>
+
+                  {role === "student" && (
+                    <div>
+                      <label htmlFor="auth-college" className="block text-xs font-medium text-[#A8A49E] mb-2">
+                        College / Campus
+                      </label>
+                      <input
+                        id="auth-college"
+                        type="text"
+                        value={collegeName}
+                        onChange={(e) => setCollegeName(e.target.value)}
+                        placeholder="e.g. Pulchowk Campus"
+                        className="w-full h-11 px-4 text-sm bg-[#252423] border border-[#333333] rounded-xl text-white placeholder:text-[#78746E] focus:border-[#E86A4D]"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full py-3.5 px-6 text-sm font-medium text-white bg-[#E86A4D] hover:bg-[#D5583B] rounded-full transition-colors shadow-[0_12px_28px_-10px_rgba(232,106,77,0.75)] disabled:opacity-60 cursor-pointer"
+              >
+                {submitting
+                  ? mode === "login"
+                    ? "Signing in..."
+                    : "Creating account..."
+                  : mode === "login"
+                    ? "Sign In"
+                    : "Create Account"}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>

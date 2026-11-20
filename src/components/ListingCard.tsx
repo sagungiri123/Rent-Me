@@ -47,7 +47,7 @@ export function ListingCard({
       }}
       tabIndex={0}
       role="button"
-      className="group flex flex-col bg-white border border-[#E6E3DC] rounded-xl overflow-hidden text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[#CBC6BB] hover:shadow-[0_12px_30px_-14px_rgba(28,31,34,0.16)] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#264D3B]"
+      className="group flex flex-col bg-[#FFFFFF] border border-[#EAE6E0] rounded-2xl overflow-hidden text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[#DCD6CC] hover:shadow-[0_20px_44px_-20px_rgba(26,26,26,0.14)] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#E86A4D]"
     >
       <div className="relative">
         <RoomImage
@@ -61,10 +61,10 @@ export function ListingCard({
             onClick={handleSaveClick}
             disabled={saving}
             aria-label={isSaved ? "Remove from saved rooms" : "Save room"}
-            className={`absolute top-3 right-3 w-10 h-10 rounded-lg flex items-center justify-center border transition-colors cursor-pointer ${
+            className={`absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center border shadow-[0_6px_16px_-6px_rgba(26,26,26,0.18)] transition-colors cursor-pointer ${
               isSaved
-                ? "bg-[#264D3B] text-white border-[#264D3B]"
-                : "bg-white/95 text-[#1C1F22] border-[#E6E3DC] hover:bg-white"
+                ? "bg-[#E86A4D] text-white border-[#E86A4D]"
+                : "bg-white/95 text-[#1A1A1A] border-[#EAE6E0] hover:bg-white hover:text-[#E86A4D]"
             }`}
           >
             <Bookmark className={`w-4 h-4 ${isSaved ? "fill-current" : ""}`} />
@@ -72,22 +72,22 @@ export function ListingCard({
         )}
       </div>
 
-      <div className="flex-1 flex flex-col p-5 gap-3">
-        <div className="flex items-center gap-2 text-xs text-[#64686D]">
-          <span className="font-medium text-[#264D3B]">{ROOM_TYPE_LABELS[listing.roomType]}</span>
+      <div className="flex-1 flex flex-col p-6 gap-3.5">
+        <div className="flex items-center gap-2 text-xs text-[#666666]">
+          <span className="font-medium text-[#E86A4D]">{ROOM_TYPE_LABELS[listing.roomType]}</span>
           <span aria-hidden="true">·</span>
           <span className="truncate">
             {listing.location.area}, {listing.location.district}
           </span>
         </div>
 
-        <h3 className="font-display text-lg font-semibold text-[#1C1F22] leading-snug line-clamp-2 group-hover:text-[#264D3B] transition-colors">
+        <h3 className="font-display text-[1.22rem] font-medium text-[#1A1A1A] leading-snug line-clamp-2 group-hover:text-[#E86A4D] transition-colors">
           {listing.title}
         </h3>
 
         {listing.location.nearbyCollege && (
-          <p className="flex items-center gap-1.5 text-xs text-[#5A5E63] truncate">
-            <MapPin className="w-3.5 h-3.5 shrink-0 text-[#7A7E83]" aria-hidden="true" />
+          <p className="flex items-center gap-1.5 text-xs text-[#666666] truncate">
+            <MapPin className="w-3.5 h-3.5 shrink-0 text-[#948E86]" aria-hidden="true" />
             <span className="truncate">
               {listing.location.distanceToCollege !== undefined
                 ? `${listing.location.distanceToCollege} km to ${listing.location.nearbyCollege}`
@@ -97,17 +97,17 @@ export function ListingCard({
         )}
 
         {topAmenities && (
-          <p className="text-xs text-[#73777C] truncate">{topAmenities}</p>
+          <p className="text-xs text-[#78746E] truncate">{topAmenities}</p>
         )}
 
-        <div className="mt-auto pt-3 border-t border-[#EFECE6] flex items-baseline justify-between gap-3">
+        <div className="mt-auto pt-4 border-t border-[#F1EDE7] flex items-baseline justify-between gap-3">
           <div>
-            <span className="font-mono text-base font-medium text-[#1C1F22] tabular-nums">
+            <span className="font-mono text-base font-medium text-[#1A1A1A] tabular-nums">
               {formatNPR(listing.rent)}
             </span>
-            <span className="text-xs text-[#64686D]"> / month</span>
+            <span className="text-xs text-[#666666]"> / month</span>
           </div>
-          <span className="text-xs font-medium text-[#5A5E63] whitespace-nowrap shrink-0">
+          <span className="text-xs font-medium text-[#666666] whitespace-nowrap shrink-0">
             {listing.isAvailable ? "Available" : "Occupied"}
           </span>
         </div>
