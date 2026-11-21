@@ -10,8 +10,8 @@ RentMe is a web-based platform that connects students directly with room and fla
 
 ## Technology Stack
 
-- **Frontend**: Next.js (App Router), Tailwind CSS, shadcn/ui
-- **Backend**: Node.js, Express.js
+- **Frontend**: React 19, Vite, Tailwind CSS, TypeScript (in `client/`)
+- **Backend**: Node.js, Express.js (in `server/`)
 - **Database**: MongoDB (Mongoose)
 - **Authentication**: JWT, bcrypt
 

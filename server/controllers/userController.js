@@ -40,7 +40,9 @@ const updateProfile = async (req, res) => {
     if (req.body?.collegeName !== undefined && req.user.role === "student") {
       updates.collegeName = sanitizeText(req.body.collegeName, 120);
     }
-    if (req.file?.filename) {
+    if (req.file?.cloudinaryUrl || req.file?.url) {
+      updates.avatar = req.file.cloudinaryUrl || req.file.url;
+    } else if (req.file?.filename) {
       updates.avatar = `/uploads/${req.file.filename}`;
     } else if (typeof req.body?.avatar === "string" && req.body.avatar.trim()) {
       const safeAvatar = sanitizeSafeUrl(req.body.avatar);

@@ -12,6 +12,8 @@ const {
 
 const toPublicFileUrl = (file) => {
   if (!file) return "";
+  if (file.cloudinaryUrl) return file.cloudinaryUrl;
+  if (file.url) return file.url;
   if (file.filename) return `/uploads/${file.filename}`;
   return "";
 };

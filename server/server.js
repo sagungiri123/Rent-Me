@@ -14,7 +14,15 @@ const {
   apiLimiter,
 } = require("./middleware/security");
 
-dotenv.config({ path: path.join(__dirname, "..", ".env") });
+// Load environment variables from root or server directory
+[
+  path.join(__dirname, "..", ".env"),
+  path.join(__dirname, ".env"),
+].forEach((envPath) => {
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+  }
+});
 
 async function startServer() {
   // Initialize JWT signing secret (uses configured JWT_SECRET or ephemeral CSPRNG fallback)
@@ -26,17 +34,14 @@ async function startServer() {
   const rootDir = path.join(__dirname, "..");
   const isProd = process.env.NODE_ENV === "production";
 
-  // Disable framework fingerprint header & trust single reverse proxy hop for accurate rate limiting
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
 
-  // Block dotfiles, server source, manifests, and traversal attempts
   app.use(blockSensitivePaths);
 
-  // Security headers (CSP, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, HSTS)
   app.use(
     helmet({
-      frameguard: false, // Allow iframe preview in AI Studio while keeping all other headers strict
+      frameguard: false, 
       crossOriginEmbedderPolicy: false,
       crossOriginResourcePolicy: { policy: "same-origin" },
       referrerPolicy: { policy: "strict-origin-when-cross-origin" },
@@ -48,7 +53,7 @@ async function startServer() {
           "script-src": isProd ? ["'self'"] : ["'self'", "'unsafe-inline'"],
           "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
           "font-src": ["'self'", "https://fonts.gstatic.com"],
-          "img-src": ["'self'", "data:", "blob:"],
+          "img-src": ["'self'", "data:", "blob:", "https://res.cloudinary.com"],
           "connect-src": ["'self'"],
           "object-src": ["'none'"],
           "base-uri": ["'self'"],
@@ -63,7 +68,6 @@ async function startServer() {
     next();
   });
 
-  // Strict CORS allowlist per request host
   app.use(
     cors((req, callback) => {
       const origin = req.headers.origin;
@@ -82,11 +86,14 @@ async function startServer() {
     })
   );
 
-  // Tight JSON & URL-encoded body size limits (file uploads use multer multipart)
   app.use(express.json({ limit: "100kb" }));
   app.use(express.urlencoded({ extended: true, limit: "100kb" }));
 
-  // Serve public listing/avatar uploads and static Kathmandu Valley assets with nosniff
+  const clientDir = path.join(rootDir, "client");
+  const clientAssetsDir = fs.existsSync(path.join(clientDir, "public", "assets"))
+    ? path.join(clientDir, "public", "assets")
+    : path.join(rootDir, "public", "assets");
+
   app.use(
     "/uploads",
     express.static(publicUploadsDir, {
@@ -100,7 +107,7 @@ async function startServer() {
   );
   app.use(
     "/assets",
-    express.static(path.join(rootDir, "public", "assets"), {
+    express.static(clientAssetsDir, {
       dotfiles: "deny",
       index: false,
       setHeaders: (res) => {
@@ -136,13 +143,15 @@ async function startServer() {
   });
 
   // Frontend serving: Vite middleware in development, static dist in production
-  const distDir = path.join(rootDir, "dist");
+  const distDir = fs.existsSync(path.join(clientDir, "dist"))
+    ? path.join(clientDir, "dist")
+    : path.join(rootDir, "dist");
 
   if (!isProd) {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
-      root: rootDir,
-      server: { middlewareMode: true, hmr: false },
+      root: clientDir,
+      server: { middlewareMode: true, hmr: false, ws: false },
       appType: "spa",
     });
     app.use(vite.middlewares);
@@ -181,9 +190,17 @@ async function startServer() {
     });
   });
 
-  const PORT = Number(process.env.PORT) || 3000;
-  app.listen(PORT, "0.0.0.0", () => {
+  const PORT = Number(process.env.PORT) || 5000;
+  const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`RentMe server listening on http://0.0.0.0:${PORT} (${isProd ? "production" : "development"})`);
+  });
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.log(`[Server] Port ${PORT} is already in use; backend server is already running.`);
+    } else {
+      console.error("[Server] Error:", err.message);
+      process.exit(1);
+    }
   });
 }
 

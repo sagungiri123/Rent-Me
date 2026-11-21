@@ -14,6 +14,7 @@ const {
   uploadLocal,
   uploadPrivateDocument,
   validateUploadedImages,
+  uploadToCloudinaryIfConfigured,
 } = require("../middleware/upload");
 const { writeLimiter } = require("../middleware/security");
 
@@ -24,6 +25,7 @@ router.put(
   writeLimiter,
   uploadLocal.single("avatar"),
   validateUploadedImages,
+  uploadToCloudinaryIfConfigured("rentme/avatars"),
   updateProfile
 );
 router.post(

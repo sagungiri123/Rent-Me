@@ -3,7 +3,15 @@ const dotenv = require("dotenv");
 const path = require("path");
 const { validateEmail, validatePassword } = require("./sanitize");
 
-dotenv.config({ path: path.join(__dirname, "..", "..", ".env") });
+const fs = require("fs");
+[
+  path.join(__dirname, "..", "..", ".env"),
+  path.join(__dirname, "..", ".env"),
+].forEach((envPath) => {
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+  }
+});
 
 const User = require("../models/User");
 

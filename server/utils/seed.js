@@ -1,13 +1,17 @@
-/**
- * Database Seed Script
- * Run: node server/utils/seed.js
- * Creates an admin user and sample data for development
- */
+
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const path = require("path");
 
-dotenv.config({ path: path.join(__dirname, "..", "..", ".env") });
+const fs = require("fs");
+[
+  path.join(__dirname, "..", "..", ".env"),
+  path.join(__dirname, "..", ".env"),
+].forEach((envPath) => {
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+  }
+});
 
 const User = require("../models/User");
 const Listing = require("../models/Listing");

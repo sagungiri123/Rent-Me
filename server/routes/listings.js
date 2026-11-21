@@ -11,7 +11,7 @@ const {
 } = require("../controllers/listingController");
 const { protect, optionalAuth } = require("../middleware/auth");
 const { authorize } = require("../middleware/role");
-const { uploadLocal, validateUploadedImages } = require("../middleware/upload");
+const { uploadLocal, validateUploadedImages, uploadToCloudinaryIfConfigured } = require("../middleware/upload");
 const { writeLimiter } = require("../middleware/security");
 
 router.get("/", getListings);
@@ -23,6 +23,7 @@ router.post(
   writeLimiter,
   uploadLocal.array("photos", 8),
   validateUploadedImages,
+  uploadToCloudinaryIfConfigured("rentme/listings"),
   createListing
 );
 router.put(
@@ -32,6 +33,7 @@ router.put(
   writeLimiter,
   uploadLocal.array("photos", 8),
   validateUploadedImages,
+  uploadToCloudinaryIfConfigured("rentme/listings"),
   updateListing
 );
 router.patch("/:id/availability", protect, authorize("owner"), writeLimiter, toggleAvailability);

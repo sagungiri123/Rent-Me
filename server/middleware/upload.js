@@ -116,10 +116,50 @@ function validateUploadedImages(req, res, next) {
   }
 }
 
+const { isCloudinaryConfigured, uploadToCloudinary } = require("../config/cloudinary");
+
+/**
+ * Middleware that uploads validated local images to Cloudinary when configured.
+ * If Cloudinary credentials are not set, it leaves files on local disk
+ * in server/uploads as a seamless fallback.
+ */
+function uploadToCloudinaryIfConfigured(folder = "rentme/listings") {
+  return async (req, res, next) => {
+    if (!isCloudinaryConfigured()) {
+      return next();
+    }
+
+    const files = [];
+    if (req.file) files.push(req.file);
+    if (Array.isArray(req.files)) files.push(...req.files);
+
+    if (files.length === 0) return next();
+
+    try {
+      for (const file of files) {
+        const uploadRes = await uploadToCloudinary(file.path, {
+          folder,
+          deleteLocalFile: true,
+        });
+        file.cloudinaryUrl = uploadRes.secureUrl;
+        file.url = uploadRes.secureUrl;
+      }
+      return next();
+    } catch (err) {
+      console.error("[Upload] Cloudinary upload error:", err.message);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to upload image to Cloudinary: " + (err.message || "Unknown error"),
+      });
+    }
+  };
+}
+
 module.exports = {
   uploadLocal,
   uploadPrivateDocument,
   validateUploadedImages,
+  uploadToCloudinaryIfConfigured,
   publicUploadsDir,
   privateVerificationsDir,
 };
