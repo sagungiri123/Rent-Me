@@ -7,6 +7,7 @@ const fs = require("fs");
 const multer = require("multer");
 const connectDB = require("./config/db");
 const { getJwtSecret, isOriginAllowed } = require("./config/security");
+const { publicUploadsDir } = require("./middleware/upload");
 const {
   blockSensitivePaths,
   sanitizeRequest,
@@ -16,7 +17,7 @@ const {
 dotenv.config({ path: path.join(__dirname, "..", ".env") });
 
 async function startServer() {
-  // Validate JWT secret posture on startup (fails fast in production if unset/weak)
+  // Initialize JWT signing secret (uses configured JWT_SECRET or ephemeral CSPRNG fallback)
   getJwtSecret();
 
   await connectDB();
@@ -88,7 +89,7 @@ async function startServer() {
   // Serve public listing/avatar uploads and static Kathmandu Valley assets with nosniff
   app.use(
     "/uploads",
-    express.static(path.join(__dirname, "uploads"), {
+    express.static(publicUploadsDir, {
       dotfiles: "deny",
       index: false,
       setHeaders: (res) => {

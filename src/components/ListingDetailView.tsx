@@ -21,6 +21,7 @@ import {
   type Listing,
   type ListingOwner,
 } from "../types";
+import { LoadingSkeleton } from "./LoadingSkeleton";
 import { RoomImage } from "./RoomImage";
 
 interface ListingDetailViewProps {
@@ -119,15 +120,7 @@ export function ListingDetailView({
   };
 
   if (loading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 animate-pulse space-y-8">
-        <div className="h-5 w-32 bg-[#F7F5F2] rounded-full" />
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          <div className="lg:col-span-7 aspect-[4/3] bg-[#F7F5F2] rounded-2xl" />
-          <div className="lg:col-span-5 h-96 bg-[#F7F5F2] rounded-2xl" />
-        </div>
-      </div>
-    );
+    return <LoadingSkeleton variant="listing-detail" />;
   }
 
   if (error || !listing) {
@@ -156,7 +149,7 @@ export function ListingDetailView({
   const isSaved = savedIds.has(listing._id);
 
   return (
-    <div className="bg-[#FFFFFF]">
+    <div className="bg-[#FFFFFF] editorial-fade-in">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-24 space-y-10">
         <button
           type="button"

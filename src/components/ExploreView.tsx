@@ -16,6 +16,7 @@ import {
   type RoomType,
 } from "../types";
 import { ListingCard } from "./ListingCard";
+import { LoadingSkeleton } from "./LoadingSkeleton";
 import { RoomImage } from "./RoomImage";
 
 interface ExploreViewProps {
@@ -524,24 +525,9 @@ export function ExploreView({
               </button>
             </div>
           ) : loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {Array.from({ length: 6 }).map((_, idx) => (
-                <div
-                  key={idx}
-                  className="bg-[#FFFFFF] border border-[#EAE6E0] rounded-2xl overflow-hidden animate-pulse"
-                >
-                  <div className="aspect-[4/3] bg-[#EFECE6]" />
-                  <div className="p-6 space-y-3">
-                    <div className="h-3 w-1/2 bg-[#EFECE6] rounded" />
-                    <div className="h-5 w-4/5 bg-[#EFECE6] rounded" />
-                    <div className="h-3 w-2/3 bg-[#EFECE6] rounded" />
-                    <div className="h-5 w-1/3 bg-[#EFECE6] rounded mt-4" />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <LoadingSkeleton variant="listing-grid" count={6} />
           ) : listings.length === 0 ? (
-            <div className="bg-[#FFFFFF] border border-[#EAE6E0] rounded-2xl p-12 text-center space-y-4">
+            <div className="editorial-fade-in bg-[#FFFFFF] border border-[#EAE6E0] rounded-2xl p-12 text-center space-y-4">
               <h3 className="font-display text-2xl font-medium text-[#1A1A1A]">
                 No matching rooms found
               </h3>
@@ -558,7 +544,7 @@ export function ExploreView({
               </button>
             </div>
           ) : (
-            <>
+            <div className="editorial-fade-in space-y-10">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                 {listings.map((listing) => (
                   <ListingCard
@@ -606,7 +592,7 @@ export function ExploreView({
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
         </div>
       </section>

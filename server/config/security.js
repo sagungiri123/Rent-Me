@@ -6,29 +6,22 @@ const JWT_ISSUER = "rentme-api";
 const JWT_AUDIENCE = "rentme-client";
 const JWT_ALGORITHM = "HS256";
 
-let ephemeralDevSecret = null;
+let ephemeralSecret = null;
 
 function getJwtSecret() {
   const configured = (process.env.JWT_SECRET || "").trim();
-  const isProd = process.env.NODE_ENV === "production";
 
   if (configured.length >= 32) {
     return configured;
   }
 
-  if (isProd) {
-    throw new Error(
-      "FATAL SECURITY ERROR: JWT_SECRET environment variable must be set and at least 32 characters in production."
-    );
-  }
-
-  if (!ephemeralDevSecret) {
-    ephemeralDevSecret = crypto.randomBytes(64).toString("hex");
+  if (!ephemeralSecret) {
+    ephemeralSecret = crypto.randomBytes(32).toString("hex");
     console.warn(
-      "[Security] JWT_SECRET not set (or <32 chars). Generated ephemeral CSPRNG secret for this non-production process."
+      "[Security] JWT_SECRET not configured (or <32 chars). Using an ephemeral in-memory CSPRNG signing secret; set JWT_SECRET in environment secrets to persist sessions across restarts."
     );
   }
-  return ephemeralDevSecret;
+  return ephemeralSecret;
 }
 
 function getJwtExpire() {

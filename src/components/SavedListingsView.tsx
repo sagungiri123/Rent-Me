@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import type { Listing } from "../types";
 import { ListingCard } from "./ListingCard";
+import { LoadingSkeleton } from "./LoadingSkeleton";
 
 interface SavedListingsViewProps {
   onOpenListing: (id: string) => void;
@@ -81,14 +82,7 @@ export function SavedListingsView({
             {error}
           </div>
         ) : loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {Array.from({ length: 3 }).map((_, idx) => (
-              <div
-                key={idx}
-                className="bg-[#F7F5F2] border border-[#EAE6E0] rounded-2xl h-80 animate-pulse"
-              />
-            ))}
-          </div>
+          <LoadingSkeleton variant="listing-grid" count={3} label="Loading saved rooms" />
         ) : listings.length === 0 ? (
           <div className="bg-[#F7F5F2] border border-[#EAE6E0] rounded-2xl p-12 sm:p-16 text-center space-y-4">
             <h2 className="font-display text-2xl sm:text-3xl font-medium text-[#1A1A1A]">

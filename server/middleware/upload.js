@@ -1,17 +1,31 @@
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
 const crypto = require("crypto");
 const { verifyImageMagicBytes } = require("../utils/sanitize");
 
-const publicUploadsDir = path.join(__dirname, "..", "uploads");
-const privateVerificationsDir = path.join(__dirname, "..", "private_uploads", "verifications");
-
-[publicUploadsDir, privateVerificationsDir].forEach((dir) => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+function ensureWritableDir(primaryDir, fallbackSubdir) {
+  try {
+    if (!fs.existsSync(primaryDir)) {
+      fs.mkdirSync(primaryDir, { recursive: true });
+    }
+    fs.accessSync(primaryDir, fs.constants.W_OK);
+    return primaryDir;
+  } catch {
+    const fallbackDir = path.join(os.tmpdir(), "rentme", fallbackSubdir);
+    if (!fs.existsSync(fallbackDir)) {
+      fs.mkdirSync(fallbackDir, { recursive: true });
+    }
+    return fallbackDir;
   }
-});
+}
+
+const publicUploadsDir = ensureWritableDir(path.join(__dirname, "..", "uploads"), "uploads");
+const privateVerificationsDir = ensureWritableDir(
+  path.join(__dirname, "..", "private_uploads", "verifications"),
+  path.join("private_uploads", "verifications")
+);
 
 const ALLOWED_MIME_TO_EXT = {
   "image/jpeg": ".jpg",

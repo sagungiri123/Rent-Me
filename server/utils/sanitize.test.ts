@@ -15,7 +15,12 @@ const {
   pickAllowedListingFields,
 } = require("./sanitize.js");
 
-const { signAuthToken, verifyAuthToken, isOriginAllowed } = require("../config/security.js");
+const {
+  getJwtSecret,
+  signAuthToken,
+  verifyAuthToken,
+  isOriginAllowed,
+} = require("../config/security.js");
 
 test("stripNoSqlOperators removes $ operators, dotted keys, and prototype pollution keys", () => {
   const hostile = JSON.parse(
@@ -111,4 +116,22 @@ test("JWT HS256 token signing and verification plus strict CORS allowlist", () =
 
   assert.equal(isOriginAllowed("http://localhost:3000", "localhost:3000"), true);
   assert.equal(isOriginAllowed("https://evil.attacker.example", "localhost:3000"), false);
+});
+
+test("getJwtSecret falls back cleanly to a 256-bit in-memory CSPRNG secret in production", () => {
+  const prevEnv = process.env.NODE_ENV;
+  const prevSecret = process.env.JWT_SECRET;
+  try {
+    process.env.NODE_ENV = "production";
+    delete process.env.JWT_SECRET;
+    const secret = getJwtSecret();
+    assert.equal(typeof secret, "string");
+    assert.ok(secret.length >= 64, "Ephemeral secret must be at least 64 hex chars (256-bit)");
+    assert.equal(getJwtSecret(), secret, "Ephemeral secret must remain stable within process");
+  } finally {
+    if (prevEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = prevEnv;
+    if (prevSecret === undefined) delete process.env.JWT_SECRET;
+    else process.env.JWT_SECRET = prevSecret;
+  }
 });

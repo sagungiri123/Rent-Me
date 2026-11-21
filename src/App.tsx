@@ -10,6 +10,7 @@ import { SavedListingsView } from "./components/SavedListingsView";
 import { OwnerDashboardView } from "./components/OwnerDashboardView";
 import { AdminDashboardView } from "./components/AdminDashboardView";
 import { ProfileView } from "./components/ProfileView";
+import { LoadingSkeleton } from "./components/LoadingSkeleton";
 
 const INITIAL_FILTERS: ListingFilters = {
   district: "",
@@ -292,11 +293,7 @@ function RentMeAppShell() {
 }
 
 function LoadingFrame() {
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <div className="h-44 bg-[#F7F5F2] border border-[#EAE6E0] rounded-2xl animate-pulse" />
-    </div>
-  );
+  return <LoadingSkeleton variant="page-frame" />;
 }
 
 function RoleNotice({
