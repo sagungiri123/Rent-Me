@@ -64,6 +64,10 @@ function getAllowedCorsOrigins() {
   if (process.env.NODE_ENV !== "production") {
     origins.add("http://localhost:3000");
     origins.add("http://127.0.0.1:3000");
+    origins.add("http://localhost:5173");
+    origins.add("http://127.0.0.1:5173");
+    origins.add("http://localhost:5000");
+    origins.add("http://127.0.0.1:5000");
   }
 
   return origins;
@@ -74,8 +78,8 @@ function isOriginAllowed(origin, reqHost) {
   if (!origin) return true;
   const normalized = origin.trim().replace(/\/+$/, "");
 
-  // Allow exact same host (handles Cloud Run / AI Studio preview origin cleanly)
-  if (reqHost) {
+  // In non-production, allow matching host cleanly (e.g. preview proxy)
+  if (reqHost && process.env.NODE_ENV !== "production") {
     if (normalized === `https://${reqHost}` || normalized === `http://${reqHost}`) {
       return true;
     }

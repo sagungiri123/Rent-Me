@@ -31,6 +31,16 @@ const studentId = "66a100000000000000000003";
 // Cost-12 bcrypt hashes for non-production sandbox seed accounts
 const hashSeed = (pw) => bcrypt.hashSync(pw, BCRYPT_ROUNDS);
 
+function getSeedPassword(envKey, devDefault) {
+  if (process.env[envKey]) {
+    return process.env[envKey];
+  }
+  if (process.env.NODE_ENV === "production") {
+    return crypto.randomBytes(24).toString("hex");
+  }
+  return devDefault;
+}
+
 const now = Date.now();
 const daysAgo = (d) => new Date(now - d * 86400000).toISOString();
 
@@ -39,7 +49,7 @@ const users = [
     _id: adminId,
     name: "Prakash Adhikari",
     email: "admin@rentme.com",
-    password: hashSeed(process.env.SEED_ADMIN_PASSWORD || "Admin@1234"),
+    password: hashSeed(getSeedPassword("SEED_ADMIN_PASSWORD", "Admin@1234")),
     role: "admin",
     phone: "+977-9841000001",
     avatar: "",
@@ -55,7 +65,7 @@ const users = [
     _id: ownerId,
     name: "Sunita Shakya",
     email: "owner@rentme.com",
-    password: hashSeed(process.env.SEED_OWNER_PASSWORD || "Owner@1234"),
+    password: hashSeed(getSeedPassword("SEED_OWNER_PASSWORD", "Owner@1234")),
     role: "owner",
     phone: "+977-9851123456",
     avatar: "",
@@ -71,7 +81,7 @@ const users = [
     _id: studentId,
     name: "Aarav Shrestha",
     email: "student@rentme.com",
-    password: hashSeed(process.env.SEED_STUDENT_PASSWORD || "Student@1234"),
+    password: hashSeed(getSeedPassword("SEED_STUDENT_PASSWORD", "Student@1234")),
     role: "student",
     phone: "+977-9860456789",
     avatar: "",
@@ -87,7 +97,7 @@ const users = [
     _id: ownerPendingId,
     name: "Bikram Maharjan",
     email: "bikram.owner@rentme.com",
-    password: hashSeed(process.env.SEED_OWNER_PASSWORD || "Owner@1234"),
+    password: hashSeed(getSeedPassword("SEED_OWNER_PASSWORD", "Owner@1234")),
     role: "owner",
     phone: "+977-9841789012",
     avatar: "",

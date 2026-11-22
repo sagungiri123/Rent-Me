@@ -14,13 +14,13 @@ const {
   apiLimiter,
 } = require("./middleware/security");
 
-// Load environment variables from root or server directory
+// Load environment variables reliably from root or server directory
 [
   path.join(__dirname, "..", ".env"),
   path.join(__dirname, ".env"),
 ].forEach((envPath) => {
   if (fs.existsSync(envPath)) {
-    dotenv.config({ path: envPath });
+    dotenv.config({ path: envPath, override: true });
   }
 });
 
@@ -41,7 +41,7 @@ async function startServer() {
 
   app.use(
     helmet({
-      frameguard: false, 
+      frameguard: { action: "deny" },
       crossOriginEmbedderPolicy: false,
       crossOriginResourcePolicy: { policy: "same-origin" },
       referrerPolicy: { policy: "strict-origin-when-cross-origin" },
@@ -54,7 +54,8 @@ async function startServer() {
           "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
           "font-src": ["'self'", "https://fonts.gstatic.com"],
           "img-src": ["'self'", "data:", "blob:", "https://res.cloudinary.com"],
-          "connect-src": ["'self'"],
+          "connect-src": ["'self'", "https://accounts.google.com", "https://res.cloudinary.com"],
+          "frame-ancestors": ["'none'"],
           "object-src": ["'none'"],
           "base-uri": ["'self'"],
           "form-action": ["'self'"],
@@ -65,6 +66,8 @@ async function startServer() {
 
   app.use((req, res, next) => {
     res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+    res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
+    res.setHeader("X-Download-Options", "noopen");
     next();
   });
 

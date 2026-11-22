@@ -2,10 +2,12 @@ const rateLimit = require("express-rate-limit");
 const { stripNoSqlOperators } = require("../utils/sanitize");
 
 const SENSITIVE_PATH_PATTERNS = [
-  /\/\.(env|git|htaccess|htpasswd|npmrc|DS_Store)/i,
-  /^\/server(\/|$)/i,
-  /^\/(package(-lock)?\.json|tsconfig\.json|vite\.config\.ts|README\.md)$/i,
+  /\/\.(env|git|htaccess|htpasswd|npmrc|DS_Store|docker|ssh|aws|gcloud|vscode|idea)/i,
+  /^\/(server|private_uploads)(\/|$)/i,
+  /^\/(package(-lock)?\.json|tsconfig(\.tsbuildinfo|\.json)?|vite\.config\.ts|README\.md|metadata\.json)$/i,
+  /\.(bak|backup|old|orig|swp|swo|tmp|temp|log)$/i,
   /\.\.[/\\]/,
+  /%2e%2e/i,
 ];
 
 const VITE_DEV_ALLOWED_PREFIXES = [
@@ -98,6 +100,12 @@ const adminLimiter = createLimiter(
   "Admin rate limit reached. Please try again shortly."
 );
 
+const contactLimiter = createLimiter(
+  15 * 60 * 1000,
+  10,
+  "Too many contact inquiries. Please wait a few minutes before requesting more owner details."
+);
+
 module.exports = {
   blockSensitivePaths,
   sanitizeRequest,
@@ -105,4 +113,5 @@ module.exports = {
   authLimiter,
   writeLimiter,
   adminLimiter,
+  contactLimiter,
 };

@@ -22,6 +22,8 @@ const {
   isOriginAllowed,
 } = require("../config/security.js");
 
+const { blockSensitivePaths } = require("../middleware/security.js");
+
 test("stripNoSqlOperators removes $ operators, dotted keys, and prototype pollution keys", () => {
   const hostile = JSON.parse(
     '{"email":{"$ne":""},"$where":"1==1","user.role":"admin","__proto__":{"polluted":true},"name":"Aarav"}'
@@ -134,4 +136,51 @@ test("getJwtSecret falls back cleanly to a 256-bit in-memory CSPRNG secret in pr
     if (prevSecret === undefined) delete process.env.JWT_SECRET;
     else process.env.JWT_SECRET = prevSecret;
   }
+});
+
+test("blockSensitivePaths blocks probing of sensitive dotfiles, backup files, and directory traversal", () => {
+  const hostilePaths = [
+    "/.env",
+    "/.env.example",
+    "/.git/config",
+    "/server/server.js",
+    "/package.json",
+    "/metadata.json",
+    "/server.js.bak",
+    "/app.swp",
+    "/uploads/../server.js",
+    "/%2e%2e/etc/passwd",
+  ];
+
+  for (const p of hostilePaths) {
+    let statusCode = null;
+    let payload = null;
+    let nextCalled = false;
+
+    const mockReq = { path: p };
+    const mockRes = {
+      status(code: number) {
+        statusCode = code;
+        return this;
+      },
+      json(data: unknown) {
+        payload = data;
+        return this;
+      },
+    };
+    const mockNext = () => {
+      nextCalled = true;
+    };
+
+    blockSensitivePaths(mockReq, mockRes, mockNext);
+    assert.equal(nextCalled, false, `Expected path ${p} to be blocked`);
+    assert.ok(statusCode === 404 || statusCode === 400, `Expected 404/400 for ${p}, got ${statusCode}`);
+  }
+
+  // Safe path must be allowed through
+  let safeCalled = false;
+  blockSensitivePaths({ path: "/api/listings" }, {}, () => {
+    safeCalled = true;
+  });
+  assert.equal(safeCalled, true, "Safe path must call next()");
 });

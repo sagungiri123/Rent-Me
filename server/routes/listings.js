@@ -12,7 +12,7 @@ const {
 const { protect, optionalAuth } = require("../middleware/auth");
 const { authorize } = require("../middleware/role");
 const { uploadLocal, validateUploadedImages, uploadToCloudinaryIfConfigured } = require("../middleware/upload");
-const { writeLimiter } = require("../middleware/security");
+const { writeLimiter, contactLimiter } = require("../middleware/security");
 
 router.get("/", getListings);
 router.get("/:id", optionalAuth, getListing);
@@ -38,6 +38,6 @@ router.put(
 );
 router.patch("/:id/availability", protect, authorize("owner"), writeLimiter, toggleAvailability);
 router.delete("/:id", protect, authorize("owner", "admin"), writeLimiter, deleteListing);
-router.post("/:id/contact", protect, authorize("student"), writeLimiter, revealContact);
+router.post("/:id/contact", protect, authorize("student"), contactLimiter, revealContact);
 
 module.exports = router;
