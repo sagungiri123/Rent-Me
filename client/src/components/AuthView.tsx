@@ -51,9 +51,20 @@ export function AuthView({ mode, onSwitchMode, onSuccess, onNotify }: AuthViewPr
   };
 
   return (
-    <div className="bg-[#2B3445] min-h-[calc(100vh-4.5rem)] flex items-center py-14 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-12 bg-[#1C1B1A] border border-[#333333] rounded-2xl overflow-hidden items-stretch shadow-[0_32px_70px_-20px_rgba(0,0,0,0.55)]">
+    <div className="relative isolate min-h-[calc(100vh-4.5rem)] flex items-center py-14 px-4 sm:px-6 lg:px-8 overflow-hidden bg-slate-950">
+      {/* Blurred Mountain Background & Contrast Dimming Overlay */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <img
+          src="/hero-mountains.jpg"
+          alt="Himalayan mountain background"
+          className="w-full h-full object-cover object-center filter blur-[4px] scale-105"
+        />
+        {/* Dark overlay so the card and inputs stand out with crisp contrast */}
+        <div className="absolute inset-0 bg-slate-950/65" />
+      </div>
+
+      <div className="relative z-10 max-w-5xl mx-auto w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 bg-[#1C1B1A]/95 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden items-stretch shadow-[0_32px_70px_-20px_rgba(0,0,0,0.7)]">
           {/* Left Editorial Photo */}
           <div className="hidden lg:block lg:col-span-5 relative min-h-[540px] border-r border-[#333333]">
             <img

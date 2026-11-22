@@ -191,7 +191,7 @@ function RentMeAppShell() {
   return (
     <div
       className={`min-h-screen flex flex-col ${
-        isAuthRoute ? "bg-[#2B3445] text-white" : "bg-[#FFFFFF] text-[#1A1A1A]"
+        isAuthRoute ? "bg-slate-950 text-white" : "bg-[#FFFFFF] text-[#1A1A1A]"
       }`}
     >
       <Navbar
@@ -206,7 +206,7 @@ function RentMeAppShell() {
       <footer
         className={
           isAuthRoute
-            ? "border-t border-[#3B465A] bg-[#242C3B]"
+            ? "border-t border-white/10 bg-slate-950"
             : "border-t border-[#EAE6E0] bg-[#F7F5F2]"
         }
       >

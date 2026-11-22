@@ -171,30 +171,41 @@ export function ExploreView({
 
   return (
     <div className="bg-[#FFFFFF]">
-      {/* Section 1: Airy Warm Editorial Hero */}
-      <section className="bg-[#FFFFFF]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 lg:py-20">
+      {/* Section 1: Hero with Blurred Mountain Background */}
+      <section className="relative isolate overflow-hidden bg-slate-900 py-14 lg:py-20">
+        {/* Mountain Background & Contrast Dimming Overlay */}
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+          <img
+            src="/hero-mountains.jpg"
+            alt="Himalayan mountain landscape background"
+            className="w-full h-full object-cover object-center filter blur-[2px] scale-105"
+          />
+          {/* Lighter gradient overlay letting the mountain colors shine through */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/30 to-black/15" />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-stretch">
             <div className="lg:col-span-7 flex flex-col justify-between gap-10 py-1">
               <div className="space-y-6">
-                <p className="text-xs font-medium tracking-[0.14em] uppercase text-[#E86A4D]">
+                <p className="inline-block text-xs font-semibold tracking-[0.14em] uppercase text-[#FFA28A] bg-black/50 backdrop-blur-sm px-3.5 py-1.5 rounded-full border border-white/15 w-fit">
                   Kathmandu · Lalitpur · Bhaktapur — Direct Owner Housing
                 </p>
-                <h1 className="font-display text-4xl sm:text-5xl lg:text-[3.5rem] font-medium leading-[1.06] tracking-[-0.02em] text-[#1A1A1A] max-w-2xl">
+                <h1 className="font-display text-4xl sm:text-5xl lg:text-[3.5rem] font-medium leading-[1.06] tracking-[-0.02em] text-white max-w-2xl drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
                   Student rooms across the valley, straight from{" "}
-                  <em className="italic font-normal text-[#E86A4D]">verified owners.</em>
+                  <em className="italic font-normal text-[#FFA28A]">verified owners.</em>
                 </h1>
-                <p className="text-base sm:text-[17px] text-[#666666] leading-relaxed max-w-xl">
+                <p className="text-base sm:text-[17px] text-white leading-relaxed max-w-xl drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]">
                   Search single rooms, shared study spaces, and furnished flats near Pulchowk,
                   Tribhuvan University, Baneshwor, and Thimi—with zero broker commission and
                   verified landlord identities.
                 </p>
               </div>
 
-              {/* Elevated Pure-White Floating Search Widget */}
+              {/* Elevated Floating Search Widget */}
               <form
                 onSubmit={handleHeroSearch}
-                className="bg-[#FFFFFF] border border-[#EAE6E0] rounded-2xl p-6 sm:p-7 shadow-[0_20px_50px_-20px_rgba(26,26,26,0.12)] space-y-5"
+                className="bg-white/95 backdrop-blur-md border border-white/40 rounded-2xl p-6 sm:p-7 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.35)] space-y-5"
               >
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
@@ -279,7 +290,7 @@ export function ExploreView({
 
             {/* Right Architectural Media Column */}
             <div className="lg:col-span-5 grid grid-rows-12 gap-4 min-h-[360px] lg:min-h-[480px]">
-              <div className="row-span-8 relative rounded-2xl overflow-hidden border border-[#EAE6E0] shadow-[0_20px_50px_-24px_rgba(26,26,26,0.18)]">
+              <div className="row-span-8 relative rounded-2xl overflow-hidden border border-white/20 shadow-2xl">
                 <img
                   src={VALLEY_ASSETS.modernFlat}
                   alt="Sunlit modern flat in Sanepa overlooking the Kathmandu Valley hills"
@@ -294,7 +305,7 @@ export function ExploreView({
                 </div>
               </div>
               <div className="row-span-4 grid grid-cols-2 gap-4">
-                <div className="rounded-2xl overflow-hidden border border-[#EAE6E0]">
+                <div className="rounded-2xl overflow-hidden border border-white/20 shadow-xl">
                   <img
                     src={VALLEY_ASSETS.brickSingle}
                     alt="Brick single study room with carved wooden window in Kathmandu Valley"
@@ -302,7 +313,7 @@ export function ExploreView({
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="rounded-2xl overflow-hidden border border-[#EAE6E0]">
+                <div className="rounded-2xl overflow-hidden border border-white/20 shadow-xl">
                   <img
                     src={VALLEY_ASSETS.rooftopSunset}
                     alt="Rooftop terrace overlooking Kathmandu Valley hills at sunset"

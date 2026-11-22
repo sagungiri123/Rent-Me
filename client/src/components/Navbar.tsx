@@ -40,7 +40,7 @@ export function Navbar({ currentPath, onNavigate, onSelectDistrict }: NavbarProp
     <header
       className={`sticky top-0 z-40 backdrop-blur-md border-b transition-colors ${
         isAuthPage
-          ? "bg-[#2B3445]/95 border-[#3B465A]"
+          ? "bg-slate-950/85 border-white/10"
           : "bg-[#FFFFFF]/95 border-[#EAE6E0]"
       }`}
     >
