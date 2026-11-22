@@ -199,7 +199,8 @@ async function startServer() {
   });
   server.on("error", (err) => {
     if (err.code === "EADDRINUSE") {
-      console.log(`[Server] Port ${PORT} is already in use; backend server is already running.`);
+      console.error(`[Server] Port ${PORT} is already in use by another process. Please stop the process or set a different PORT.`);
+      process.exit(1);
     } else {
       console.error("[Server] Error:", err.message);
       process.exit(1);

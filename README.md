@@ -24,24 +24,39 @@ RentMe is a web-based platform that connects students directly with room and fla
 
 1. **Clone the repository** (if applicable) and navigate to the root directory.
 2. **Install dependencies**:
-   \`\`\`bash
+   ```bash
    npm run install:all
-   \`\`\`
+   ```
 3. **Configure Environment Variables**:
-   Create a \`.env\` file in the root directory and add the necessary variables (use \`.env.example\` as a guide).
+   Create a `.env` file in the root directory and add the necessary variables (use `.env.example` as a guide).
    Ensure MongoDB is running locally or provide a valid connection string.
 4. **Seed the Database** (Optional):
    Run the seed script to create sample users and listings:
-   \`\`\`bash
+   ```bash
    node server/utils/seed.js
-   \`\`\`
-5. **Run the Application**:
-   Start both the frontend and backend servers concurrently:
-   \`\`\`bash
-   npm run dev
-   \`\`\`
-   - Frontend will be available at \`http://localhost:3000\`
-   - Backend will be available at \`http://localhost:5000\`
+   ```
+5. **Run the Application in Separate Terminals**:
+
+   **Terminal 1 (Backend Server)**:
+   ```bash
+   # From root directory:
+   npm run server
+   # Or from server directory:
+   cd server && npm run dev
+   ```
+
+   **Terminal 2 (Frontend Client)**:
+   ```bash
+   # From root directory:
+   npm run client
+   # Or from client directory:
+   cd client && npm run dev
+   ```
+
+   - Frontend will be available at `http://localhost:3000`
+   - Backend will be available at `http://localhost:5000`
+
+   *(Optional: you can also start both from the root directory using `npm run dev`)*
 
 ## Default Test Accounts (if seeded)
 - **Admin**: admin@rentme.com / admin123

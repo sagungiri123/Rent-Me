@@ -7,6 +7,8 @@
     "dev": "concurrently -n \"server,client\" -c \"blue,green\" \"npm run dev:server\" \"npm run dev:client\"",
     "dev:client": "npm --prefix client run dev",
     "dev:server": "node server/server.js",
+    "server": "npm run dev:server",
+    "client": "npm run dev:client",
     "build": "npm --prefix client run build",
     "start": "NODE_ENV=production node server/server.js",
     "lint": "npm --prefix client run lint",

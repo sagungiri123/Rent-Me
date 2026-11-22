@@ -1,46 +1,9 @@
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import { spawn, type ChildProcess } from "child_process";
-import path from "path";
-import net from "net";
-
-function autoBackendPlugin(): Plugin {
-  let backendProc: ChildProcess | null = null;
-  return {
-    name: "auto-backend",
-    configureServer() {
-      const socket = net.createConnection({ port: 5000, host: "127.0.0.1" });
-      socket.once("connect", () => {
-        socket.destroy();
-      });
-      socket.once("error", () => {
-        socket.destroy();
-        const rootDir = path.resolve(import.meta.dirname, "..");
-        const serverFile = path.resolve(rootDir, "server", "server.js");
-        backendProc = spawn(process.execPath, [serverFile], {
-          stdio: "inherit",
-          env: process.env,
-          cwd: rootDir,
-        });
-      });
-
-      const killBackend = () => {
-        if (backendProc) {
-          backendProc.kill();
-          backendProc = null;
-        }
-      };
-
-      process.once("exit", killBackend);
-      process.once("SIGINT", killBackend);
-      process.once("SIGTERM", killBackend);
-    },
-  };
-}
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), autoBackendPlugin()],
+  plugins: [react(), tailwindcss()],
   server: {
     host: "0.0.0.0",
     port: 3000,
