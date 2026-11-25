@@ -1,9 +1,6 @@
 const cloudinary = require("cloudinary").v2;
 const fs = require("fs");
 
-/**
- * Checks whether valid Cloudinary credentials have been provided.
- */
 function isCloudinaryConfigured() {
   const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, CLOUDINARY_URL } = process.env;
 
@@ -13,23 +10,21 @@ function isCloudinaryConfigured() {
 
   return Boolean(
     CLOUDINARY_CLOUD_NAME &&
-      CLOUDINARY_CLOUD_NAME.trim() &&
-      !CLOUDINARY_CLOUD_NAME.includes("your_") &&
-      CLOUDINARY_API_KEY &&
-      CLOUDINARY_API_KEY.trim() &&
-      !CLOUDINARY_API_KEY.includes("your_") &&
-      CLOUDINARY_API_SECRET &&
-      CLOUDINARY_API_SECRET.trim() &&
-      !CLOUDINARY_API_SECRET.includes("your_")
+    CLOUDINARY_CLOUD_NAME.trim() &&
+    !CLOUDINARY_CLOUD_NAME.includes("your_") &&
+    CLOUDINARY_API_KEY &&
+    CLOUDINARY_API_KEY.trim() &&
+    !CLOUDINARY_API_KEY.includes("your_") &&
+    CLOUDINARY_API_SECRET &&
+    CLOUDINARY_API_SECRET.trim() &&
+    !CLOUDINARY_API_SECRET.includes("your_")
   );
 }
 
-/**
- * Configures the Cloudinary SDK if credentials exist.
- */
+
 function initCloudinary() {
   if (process.env.CLOUDINARY_URL && process.env.CLOUDINARY_URL.trim() && !process.env.CLOUDINARY_URL.includes("your_")) {
-    cloudinary.config();
+    cloudinary.config({ secure: true });
   } else if (isCloudinaryConfigured()) {
     cloudinary.config({
       cloud_name: process.env.CLOUDINARY_CLOUD_NAME.trim(),
@@ -41,25 +36,25 @@ function initCloudinary() {
   return cloudinary;
 }
 
-/**
- * Uploads a local file to Cloudinary.
- *
- * @param {string} filePath - Absolute path to local file on disk
- * @param {object} [options] - Cloudinary upload options (e.g. folder)
- * @returns {Promise<{ url: string, secureUrl: string, publicId: string }>}
- */
+
+
+// @param {string} filePath 
+// @param {object} [options] 
+// @returns {Promise<{ url: string, secureUrl: string, publicId: string }>}
+
 async function uploadToCloudinary(filePath, options = {}) {
   initCloudinary();
 
-  const folder = options.folder || "rentme/listings";
+  const { deleteLocalFile = true, ...cloudinaryOptions } = options;
+  const folder = cloudinaryOptions.folder || "rentme/listings";
   const result = await cloudinary.uploader.upload(filePath, {
     folder,
     resource_type: "image",
-    ...options,
+    ...cloudinaryOptions,
   });
 
   // Automatically clean up the temporary local file if requested (default: true)
-  if (options.deleteLocalFile !== false) {
+  if (deleteLocalFile !== false) {
     try {
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);

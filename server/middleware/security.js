@@ -74,6 +74,7 @@ const createLimiter = (windowMs, max, message) =>
     standardHeaders: "draft-7",
     legacyHeaders: false,
     message: { success: false, message },
+    skip: () => process.env.NODE_ENV !== "production",
   });
 
 const apiLimiter = createLimiter(

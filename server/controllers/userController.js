@@ -61,9 +61,13 @@ const updateProfile = async (req, res) => {
     }
 
     const user = await User.findByIdAndUpdate(req.user._id, updates, {
+      returnDocument: "after",
       new: true,
       runValidators: true,
     });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
     return res.status(200).json({ success: true, message: "Profile updated", data: { user } });
   } catch (error) {
     console.error("[Users] updateProfile error:", error.message);

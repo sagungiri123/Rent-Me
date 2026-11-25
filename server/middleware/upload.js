@@ -120,8 +120,8 @@ const { isCloudinaryConfigured, uploadToCloudinary } = require("../config/cloudi
 
 /**
  * Middleware that uploads validated local images to Cloudinary when configured.
- * If Cloudinary credentials are not set, it leaves files on local disk
- * in server/uploads as a seamless fallback.
+ * When configured, images are uploaded directly to Cloudinary and local temporary files are deleted.
+ * If Cloudinary credentials are not set, it leaves files on local disk in server/uploads.
  */
 function uploadToCloudinaryIfConfigured(folder = "rentme/listings") {
   return async (req, res, next) => {
@@ -147,9 +147,13 @@ function uploadToCloudinaryIfConfigured(folder = "rentme/listings") {
       return next();
     } catch (err) {
       console.error("[Upload] Cloudinary upload error:", err.message);
-      return res.status(500).json({
+      const isPermError = err.message && (err.message.includes("403") || err.message.includes("permissions"));
+      const hint = isPermError
+        ? " Cloudinary API key is missing 'create' permissions. Enable Upload/Create permissions on your Access Key in Cloudinary Console."
+        : "";
+      return res.status(502).json({
         success: false,
-        message: "Failed to upload image to Cloudinary: " + (err.message || "Unknown error"),
+        message: `Failed to upload image to Cloudinary: ${err.message}.${hint}`,
       });
     }
   };

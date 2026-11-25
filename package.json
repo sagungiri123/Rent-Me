@@ -13,6 +13,7 @@
     "start": "NODE_ENV=production node server/server.js",
     "lint": "npm --prefix client run lint",
     "seed:server": "node server/utils/seed.js",
+    "check:cloudinary": "node server/utils/checkCloudinary.js",
     "install:all": "npm install && npm --prefix client install"
   },
   "dependencies": {

@@ -54,7 +54,9 @@ async function startServer() {
           "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
           "font-src": ["'self'", "https://fonts.gstatic.com"],
           "img-src": ["'self'", "data:", "blob:", "https://res.cloudinary.com"],
-          "connect-src": ["'self'", "https://accounts.google.com", "https://res.cloudinary.com"],
+          "connect-src": isProd
+            ? ["'self'", "https://accounts.google.com", "https://res.cloudinary.com"]
+            : ["'self'", "http:", "https:", "ws:", "wss:", "https://accounts.google.com", "https://res.cloudinary.com"],
           "frame-ancestors": ["'none'"],
           "object-src": ["'none'"],
           "base-uri": ["'self'"],
@@ -74,17 +76,17 @@ async function startServer() {
   app.use(
     cors((req, callback) => {
       const origin = req.headers.origin;
-      const host = req.headers.host;
+      const host = req.headers["x-forwarded-host"] || req.headers.host;
       if (isOriginAllowed(origin, host)) {
         callback(null, {
-          origin: origin || false,
+          origin: origin || true,
           credentials: true,
-          methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-          allowedHeaders: ["Content-Type", "Authorization"],
+          methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+          allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
           maxAge: 600,
         });
       } else {
-        callback(Object.assign(new Error("Origin not allowed by CORS policy"), { status: 403 }));
+        callback(null, { origin: false });
       }
     })
   );
@@ -106,7 +108,10 @@ async function startServer() {
         res.setHeader("X-Content-Type-Options", "nosniff");
         res.setHeader("Cache-Control", "public, max-age=86400");
       },
-    })
+    }),
+    (req, res) => {
+      res.status(404).json({ success: false, message: "Upload file not found" });
+    }
   );
   app.use(
     "/assets",
@@ -116,7 +121,10 @@ async function startServer() {
       setHeaders: (res) => {
         res.setHeader("X-Content-Type-Options", "nosniff");
       },
-    })
+    }),
+    (req, res) => {
+      res.status(404).json({ success: false, message: "Asset not found" });
+    }
   );
 
   // Global API rate limiting + NoSQL/prototype-pollution sanitization
@@ -154,7 +162,7 @@ async function startServer() {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       root: clientDir,
-      server: { middlewareMode: true, hmr: false, ws: false },
+      server: { middlewareMode: true, hmr: false, ws: false, proxy: {} },
       appType: "spa",
     });
     app.use(vite.middlewares);
